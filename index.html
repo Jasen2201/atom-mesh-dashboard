@@ -257,6 +257,7 @@
           backend: run.backend,
           config_label: run.config_label,
           source: run.source || 'SLURM',
+          hardware: p.hardware || run.hardware || 'mi355x',
           gsm8k: run.gsm8k,
           ...p,
           precision: p.precision || 'fp8',
@@ -305,6 +306,8 @@
     FILTER_DEFS.forEach(({id, key}) => {
       fillSelect(document.getElementById(id), uniqueSorted(ALL_ROWS, key));
     });
+    // Default Precision to fp4
+    document.getElementById('fPrecision').value = 'fp4';
     // Default Date to latest SLURM date
     const slurmDates = ALL_ROWS.filter(r => r.source === 'SLURM').map(r => r.date).filter(Boolean);
     if (slurmDates.length) {
@@ -356,13 +359,32 @@
   });
 
   // ============================================================
-  // Color generator (stable hash → HSL)
+  // Color: B200 = NV green, MI355X (MoRI) = red, SLURM (ours) = pink
   // ============================================================
-  function colorFor(label) {
-    let h = 0;
-    for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) | 0;
-    const hue = Math.abs(h) % 360;
-    return `hsl(${hue}, 60%, 60%)`;
+  const SOURCE_COLORS = {
+    'b200':   {base: '#76b900', variants: ['#76b900', '#5a8f00']},   // NV green
+    'mi355x': {base: '#e04040', variants: ['#e04040', '#c03030']},   // red
+    'slurm':  {base: '#d86ecc', variants: ['#d86ecc', '#b84eac']},   // pink (brand)
+  };
+  function colorFor(label, rows) {
+    if (!rows || !rows.length) {
+      let h = 0;
+      for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) | 0;
+      return `hsl(${Math.abs(h) % 360}, 60%, 60%)`;
+    }
+    const r0 = rows[0];
+    const hw = (r0.hardware || '').toLowerCase();
+    const src = (r0.source || '').toLowerCase();
+    const prec = (r0.precision || 'fp8').toLowerCase();
+    let key = src === 'slurm' ? 'slurm' : hw;
+    const entry = SOURCE_COLORS[key];
+    if (!entry) {
+      let h = 0;
+      for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) | 0;
+      return `hsl(${Math.abs(h) % 360}, 60%, 60%)`;
+    }
+    const idx = prec === 'fp4' ? 0 : 1;
+    return entry.variants[idx] || entry.base;
   }
 
   // ============================================================
@@ -431,7 +453,8 @@
 
   function tooltipHtml(r, pinned) {
     const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
-    const title = r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label;
+    const hw = (r.hardware || '').toUpperCase();
+    const title = r.source === 'InferenceX' ? `${hw} (${r.backend || r.config_label})` : r.config_label;
     let html = '';
     if (pinned) html += '<span class="tt-close">&times;</span>';
     html += `<div class="tt-title">${title}</div>`;
@@ -540,8 +563,7 @@
         .map(r => ({x: r[xKey], y: r[yKey], _r: r}))
         .sort((a, b) => a.x - b.x);
       const frontPts = paretoFrontUpperLeft(allPts);
-      const c = colorFor(label);
-      const isExternal = allPts[0]?._r.source && allPts[0]._r.source !== 'SLURM';
+      const c = colorFor(label, groups[label]);
       // Layer 1: Pareto frontier smooth line (no dots on line itself)
       datasets.push({
         label, data: frontPts, borderColor: c, backgroundColor: 'transparent',
@@ -584,7 +606,7 @@
         .filter(r => r[yKey] != null)
         .map(r => ({x: r.concurrency, y: r[yKey]}))
         .sort((a, b) => a.x - b.x);
-      const c = colorFor(label);
+      const c = colorFor(label, grp);
       return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, borderWidth: 2.5, showLine: true, tension: 0};
     });
     if (ttftChart) ttftChart.destroy();
@@ -633,7 +655,7 @@
         .filter(r => r[metric] != null)
         .map(r => ({x: r.date, y: r[metric]}))
         .sort((a, b) => a.x.localeCompare(b.x));
-      const c = colorFor(label);
+      const c = colorFor(label, groups[label]);
       return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, borderWidth: 2, showLine: true, tension: 0};
     });
     if (trendChart) trendChart.destroy();

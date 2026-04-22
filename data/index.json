@@ -1,14 +1,26 @@
 {
-  "lastUpdate": 1776843604784,
-  "source": "/it-share/yajizhan/slurm_logs",
+  "lastUpdate": 1776844764555,
+  "source": "",
   "runs": [
+    {
+      "run_id": "infx_b200_dynamo-trt_fp4_isl8192_osl1024",
+      "date": "2026-01-29",
+      "timestamp": 1769644800000,
+      "model": "DeepSeek-R1-0528",
+      "backend": "dynamo-trt",
+      "config_label": "b200_dynamo-trt_fp4",
+      "source": "InferenceX",
+      "n_points": 10,
+      "gsm8k": null,
+      "file": "infx_b200_dynamo-trt_fp4_isl8192_osl1024.json"
+    },
     {
       "run_id": "infx_mi355x_mori-sglang_fp8_isl8192_osl1024",
       "date": "2026-03-03",
       "timestamp": 1772496000000,
       "model": "DeepSeek-R1-0528",
       "backend": "mori-sglang",
-      "config_label": "mori-sglang_fp8_combined",
+      "config_label": "mi355x_mori-sglang_fp8",
       "source": "InferenceX",
       "n_points": 16,
       "gsm8k": null,
@@ -20,11 +32,23 @@
       "timestamp": 1773360000000,
       "model": "DeepSeek-R1-0528",
       "backend": "mori-sglang",
-      "config_label": "mori-sglang_fp4_combined",
+      "config_label": "mi355x_mori-sglang_fp4",
       "source": "InferenceX",
       "n_points": 18,
       "gsm8k": null,
       "file": "infx_mi355x_mori-sglang_fp4_isl8192_osl1024.json"
+    },
+    {
+      "run_id": "infx_b200_dynamo-trt_fp8_isl8192_osl1024",
+      "date": "2026-03-23",
+      "timestamp": 1774224000000,
+      "model": "DeepSeek-R1-0528",
+      "backend": "dynamo-trt",
+      "config_label": "b200_dynamo-trt_fp8",
+      "source": "InferenceX",
+      "n_points": 8,
+      "gsm8k": null,
+      "file": "infx_b200_dynamo-trt_fp8_isl8192_osl1024.json"
     },
     {
       "run_id": "0421_ds_fp8_1p_tp4_1d_tp8_4103",
