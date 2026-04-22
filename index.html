@@ -76,6 +76,11 @@
     .num { font-family: "SF Mono", "Fira Code", monospace; color: var(--text-primary); }
 
     footer { margin-top: var(--gap-lg); padding-top: var(--gap-md); border-top: 1px solid var(--border-light); font-size: 11px; color: var(--text-tertiary); text-align: center; }
+
+    #chartTooltip { position: absolute; pointer-events: auto; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--text-secondary); z-index: 100; max-width: 480px; user-select: text; cursor: text; white-space: pre-wrap; line-height: 1.6; opacity: 0; transition: opacity 0.15s; }
+    #chartTooltip.visible { opacity: 1; }
+    #chartTooltip .tt-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    #chartTooltip .tt-line { color: var(--text-secondary); }
   </style>
 </head>
 <body>
@@ -197,6 +202,7 @@
       </div>
     </div>
 
+    <div id="chartTooltip"></div>
     <footer>
       <span id="footerInfo"></span> · Source: <code id="footerSource"></code> ·
       Rebuild with <code>./update_data.py</code>
@@ -413,6 +419,45 @@
     return stack;
   }
 
+  function externalTooltip(context) {
+    const {chart, tooltip} = context;
+    const el = document.getElementById('chartTooltip');
+    if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
+    if (tooltip.dataPoints && tooltip.dataPoints.length) {
+      const dp = tooltip.dataPoints[0];
+      const r = dp.raw._r;
+      if (!r) { el.classList.remove('visible'); return; }
+      const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
+      const title = r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label;
+      let html = `<div class="tt-title">${title}</div>`;
+      const line = t => `<div class="tt-line">${t}</div>`;
+      if (r.point_date || r.date) html += line(`Date: ${r.point_date || r.date}`);
+      if (r.image) html += line(`Image: ${r.image}`);
+      html += line(`Interactivity (tok/s/user): ${f(r.interactivity || r.per_user_tput, 12)}`);
+      if (r.tput_per_gpu != null) html += line(`Token Throughput per GPU (tok/s/gpu): ${f(r.tput_per_gpu, 12)}`);
+      if (r.input_tput_per_gpu != null) html += line(`Input Token Throughput per GPU: ${f(r.input_tput_per_gpu, 12)}`);
+      if (r.output_tput_per_gpu != null) html += line(`Output Token Throughput per GPU: ${f(r.output_tput_per_gpu, 12)}`);
+      if (r.total_gpu) {
+        html += line(`Total GPUs: ${r.total_gpu}`);
+        const pDpa = r.prefill_dpa != null ? `, DPA: ${r.prefill_dpa}` : '';
+        const pW = r.prefill_workers != null ? `, Workers: ${r.prefill_workers}` : '';
+        html += line(`Prefill: ${r.num_prefill_gpu} GPUs, TP: ${r.prefill_tp}${r.prefill_ep != null ? ', EP: '+r.prefill_ep : ''}${pDpa}${pW}`);
+        const dDpa = r.decode_dpa != null ? `, DPA: ${r.decode_dpa}` : '';
+        const dW = r.decode_workers != null ? `, Workers: ${r.decode_workers}` : '';
+        html += line(`Decode: ${r.num_decode_gpu} GPUs, TP: ${r.decode_tp}${r.decode_ep != null ? ', EP: '+r.decode_ep : ''}${dDpa}${dW}`);
+      }
+      html += line(`Concurrency: ${r.concurrency}`);
+      if (r.source === 'InferenceX') html += line(`Precision: FP8`);
+      html += line(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
+      html += line(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
+      el.innerHTML = html;
+    }
+    const pos = chart.canvas.getBoundingClientRect();
+    el.style.left = pos.left + window.scrollX + tooltip.caretX + 12 + 'px';
+    el.style.top = pos.top + window.scrollY + tooltip.caretY - 12 + 'px';
+    el.classList.add('visible');
+  }
+
   function buildPareto() {
     const rows = filterRows();
     const xKey = document.getElementById('paretoX').value;
@@ -447,37 +492,8 @@
     });
     if (paretoChart) paretoChart.destroy();
     const opts = baseChartOptions(METRIC_LABEL[xKey], METRIC_LABEL[yKey]);
-    opts.plugins.tooltip.callbacks = {
-      title: ctx => {
-        const r = ctx[0]?.raw?._r;
-        if (!r) return ctx[0]?.dataset.label || '';
-        return `${r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label}`;
-      },
-      label: ctx => {
-        const r = ctx.raw._r;
-        const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
-        const lines = [];
-        if (r.point_date || r.date) lines.push(`Date: ${r.point_date || r.date}`);
-        if (r.image) lines.push(`Image: ${r.image}`);
-        lines.push(`Interactivity: ${f(r.interactivity || r.per_user_tput, 2)} tok/s/user`);
-        if (r.tput_per_gpu != null) lines.push(`Token Throughput/GPU: ${f(r.tput_per_gpu, 2)} tok/s/gpu`);
-        if (r.input_tput_per_gpu != null) lines.push(`Input Throughput/GPU: ${f(r.input_tput_per_gpu, 2)}`);
-        if (r.output_tput_per_gpu != null) lines.push(`Output Throughput/GPU: ${f(r.output_tput_per_gpu, 2)}`);
-        if (r.total_gpu) {
-          lines.push(`Total GPUs: ${r.total_gpu}`);
-          const pDpa = r.prefill_dpa != null ? `, DPA: ${r.prefill_dpa}` : '';
-          const pW = r.prefill_workers != null ? `, Workers: ${r.prefill_workers}` : '';
-          lines.push(`Prefill: ${r.num_prefill_gpu} GPUs, TP: ${r.prefill_tp}${r.prefill_ep != null ? ', EP: '+r.prefill_ep : ''}${pDpa}${pW}`);
-          const dDpa = r.decode_dpa != null ? `, DPA: ${r.decode_dpa}` : '';
-          const dW = r.decode_workers != null ? `, Workers: ${r.decode_workers}` : '';
-          lines.push(`Decode: ${r.num_decode_gpu} GPUs, TP: ${r.decode_tp}${r.decode_ep != null ? ', EP: '+r.decode_ep : ''}${dDpa}${dW}`);
-        }
-        lines.push(`Concurrency: ${r.concurrency}`);
-        lines.push(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
-        lines.push(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
-        return lines;
-      },
-    };
+    opts.plugins.tooltip.enabled = false;
+    opts.plugins.tooltip.external = externalTooltip;
     paretoChart = new Chart(document.getElementById('paretoChart'), {type: 'line', data: {datasets}, options: opts});
   }
   document.getElementById('paretoX').addEventListener('change', buildPareto);
