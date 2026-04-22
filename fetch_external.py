@@ -61,26 +61,22 @@ def to_runs(rows):
 
     runs = []
     for (isl, osl), group_rows in sorted(groups.items()):
-        # Deduplicate: for identical (config, concurrency), keep latest date.
-        best = {}
-        for r in group_rows:
-            key = (
-                r["prefill_tp"], r["decode_tp"],
-                r["num_prefill_gpu"], r["num_decode_gpu"],
-                r["conc"],
-            )
-            if key not in best or r["date"] > best[key]["date"]:
-                best[key] = r
-
         points = []
         latest_date = ""
-        for (ptp, dtp, pgpu, dgpu, conc), r in sorted(best.items()):
+        for r in group_rows:
             m = r.get("metrics", {})
+            ptp, dtp = r["prefill_tp"], r["decode_tp"]
+            pgpu, dgpu = r["num_prefill_gpu"], r["num_decode_gpu"]
             total_gpu = pgpu + dgpu
-            interactivity = m.get("mean_intvty")
+            conc = r["conc"]
+            mean_intvty = m.get("mean_intvty")
+            median_intvty = m.get("median_intvty")
             tput_per_gpu = m.get("tput_per_gpu")
             output_tput_per_gpu = m.get("output_tput_per_gpu")
-            output_tput = interactivity * conc if (interactivity is not None and conc) else None
+            output_tput = mean_intvty * conc if (mean_intvty is not None and conc) else None
+
+            def rnd(v):
+                return round(v, 4) if v is not None else None
 
             points.append({
                 "isl": isl, "osl": osl, "concurrency": conc, "ratio": None,
@@ -90,10 +86,10 @@ def to_runs(rows):
                 "tpot_p99": ms(m.get("p99_tpot")),
                 "itl_ms": ms(m.get("mean_itl")),
                 "e2el_ms": ms(m.get("mean_e2el")),
-                "interactivity": round(interactivity, 4) if interactivity is not None else None,
-                "tput_per_gpu": round(tput_per_gpu, 4) if tput_per_gpu is not None else None,
-                "output_tput_per_gpu": round(output_tput_per_gpu, 4) if output_tput_per_gpu is not None else None,
-                "output_tput": round(output_tput, 4) if output_tput is not None else None,
+                "interactivity": rnd(median_intvty),
+                "tput_per_gpu": rnd(tput_per_gpu),
+                "output_tput_per_gpu": rnd(output_tput_per_gpu),
+                "output_tput": rnd(output_tput),
                 "total_tput": None,
                 "req_tput": None, "completed": None, "duration": None, "num_prompts": None,
                 "prefill_tp": ptp, "decode_tp": dtp,
