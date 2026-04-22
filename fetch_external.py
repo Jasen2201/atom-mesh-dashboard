@@ -2,6 +2,10 @@
 """One-shot: pull DeepSeek-R1 FP8 MI355X mori-sglang reference data from
 the public InferenceX API and write data/infx_*.json + refresh data/index.json.
 
+All configs for a given (ISL, OSL) are merged into ONE run file so the
+dashboard draws a single combined Pareto curve — matching InferenceX's own
+"Token Throughput per GPU vs. Interactivity" presentation.
+
 This is a snapshot, not a recurring job. Re-run only when you want to refresh
 the InferenceX baseline (e.g. they publish new numbers).
 
@@ -19,7 +23,7 @@ import urllib.error
 from collections import defaultdict
 from pathlib import Path
 
-from update_data import rebuild_index  # share the index-rebuild logic
+from update_data import rebuild_index
 
 API = "https://inferencex.semianalysis.com/api/v1/benchmarks?model=DeepSeek-R1-0528"
 HARDWARE = "mi355x"
@@ -35,6 +39,10 @@ def fetch():
         return json.loads(resp.read())
 
 
+def ms(x):
+    return round(x * 1000, 4) if x is not None else None
+
+
 def to_runs(rows):
     matches = [
         r for r in rows
@@ -46,59 +54,56 @@ def to_runs(rows):
           f"(hardware={HARDWARE}, framework={FRAMEWORK}, precision={PRECISION})",
           file=sys.stderr)
 
+    # Group by (ISL, OSL) — all configs merge into one combined Pareto run.
     groups = defaultdict(list)
     for r in matches:
-        key = (
-            r["precision"], bool(r["disagg"]),
-            r["prefill_tp"], r["decode_tp"],
-            r["num_prefill_gpu"], r["num_decode_gpu"],
-            r["isl"], r["osl"],
-        )
-        groups[key].append(r)
+        groups[(r["isl"], r["osl"])].append(r)
 
     runs = []
-    for key, rows_in in groups.items():
-        prec, disagg, ptp, dtp, pgpu, dgpu, isl, osl = key
-        # latest date wins per concurrency
-        latest_per_conc = {}
-        for r in rows_in:
-            c = r["conc"]
-            if c not in latest_per_conc or r["date"] > latest_per_conc[c]["date"]:
-                latest_per_conc[c] = r
+    for (isl, osl), group_rows in sorted(groups.items()):
+        # Deduplicate: for identical (config, concurrency), keep latest date.
+        best = {}
+        for r in group_rows:
+            key = (
+                r["prefill_tp"], r["decode_tp"],
+                r["num_prefill_gpu"], r["num_decode_gpu"],
+                r["conc"],
+            )
+            if key not in best or r["date"] > best[key]["date"]:
+                best[key] = r
 
         points = []
         latest_date = ""
-        for c in sorted(latest_per_conc):
-            r = latest_per_conc[c]
+        for (ptp, dtp, pgpu, dgpu, conc), r in sorted(best.items()):
             m = r.get("metrics", {})
-            tpot_s = m.get("mean_tpot")
-            ttft_s = m.get("mean_ttft")
-            intvty = m.get("mean_intvty")  # output tokens/sec/user
-            output_tput = intvty * c if (intvty is not None and c is not None) else None
-
-            def ms(x):
-                return round(x * 1000, 4) if x is not None else None
+            total_gpu = pgpu + dgpu
+            interactivity = m.get("mean_intvty")
+            tput_per_gpu = m.get("tput_per_gpu")
+            output_tput_per_gpu = m.get("output_tput_per_gpu")
+            output_tput = interactivity * conc if (interactivity is not None and conc) else None
 
             points.append({
-                "isl": isl, "osl": osl, "concurrency": c, "ratio": None,
-                "ttft_ms": ms(ttft_s),
+                "isl": isl, "osl": osl, "concurrency": conc, "ratio": None,
+                "ttft_ms": ms(m.get("mean_ttft")),
                 "ttft_p99": ms(m.get("p99_ttft")),
-                "tpot_ms": ms(tpot_s),
+                "tpot_ms": ms(m.get("mean_tpot")),
                 "tpot_p99": ms(m.get("p99_tpot")),
-                "itl_ms":  ms(m.get("mean_itl")),
+                "itl_ms": ms(m.get("mean_itl")),
                 "e2el_ms": ms(m.get("mean_e2el")),
+                "interactivity": round(interactivity, 4) if interactivity is not None else None,
+                "tput_per_gpu": round(tput_per_gpu, 4) if tput_per_gpu is not None else None,
+                "output_tput_per_gpu": round(output_tput_per_gpu, 4) if output_tput_per_gpu is not None else None,
                 "output_tput": round(output_tput, 4) if output_tput is not None else None,
-                "total_tput": None,  # InferenceX exposes per-GPU throughput; total ambiguous
+                "total_tput": None,
                 "req_tput": None, "completed": None, "duration": None, "num_prompts": None,
+                "prefill_tp": ptp, "decode_tp": dtp,
+                "num_prefill_gpu": pgpu, "num_decode_gpu": dgpu,
+                "total_gpu": total_gpu,
             })
             if r["date"] > latest_date:
                 latest_date = r["date"]
 
-        config_label = (
-            f"mori-sglang_{prec}_{ptp}p{dtp}d_{pgpu}+{dgpu}gpu"
-            + ("_disagg" if disagg else "")
-        )
-        run_id = f"{RUN_PREFIX}{HARDWARE}_{config_label}_isl{isl}_osl{osl}"
+        run_id = f"{RUN_PREFIX}{HARDWARE}_{FRAMEWORK}_{PRECISION}_isl{isl}_osl{osl}"
         try:
             ts = int(time.mktime(time.strptime(latest_date, "%Y-%m-%d")) * 1000)
         except ValueError:
@@ -109,7 +114,7 @@ def to_runs(rows):
             "timestamp": ts,
             "model": "DeepSeek-R1-0528",
             "backend": FRAMEWORK,
-            "config_label": config_label,
+            "config_label": f"{FRAMEWORK}_{PRECISION}_combined",
             "source": "InferenceX",
             "points": points,
             "gsm8k": None,
@@ -142,8 +147,6 @@ def main():
         print(f"  wrote {f.name}: {len(run['points'])} points (latest {run['date']})",
               file=sys.stderr)
 
-    # Append-only by default: an old InferenceX snapshot stays even if their
-    # API later drops the config. Use --prune to actually delete.
     leftovers = [f for f in data_dir.glob(f"{RUN_PREFIX}*.json") if f.name not in written]
     if leftovers:
         action = "removing" if args.prune else "kept (use --prune to delete)"

@@ -115,6 +115,7 @@
         <div class="chart-controls">
           <label>X</label>
           <select id="paretoX">
+            <option value="interactivity">Interactivity (tok/s/user)</option>
             <option value="per_user_tput">Per-user output throughput (tok/s/user)</option>
             <option value="total_tput">Total token throughput (tok/s)</option>
             <option value="output_tput">Output throughput (tok/s)</option>
@@ -122,6 +123,7 @@
           </select>
           <label>Y</label>
           <select id="paretoY">
+            <option value="tput_per_gpu">Token Throughput per GPU (tok/s/gpu)</option>
             <option value="tpot_ms">Mean TPOT (ms)</option>
             <option value="tpot_p99">P99 TPOT (ms)</option>
             <option value="ttft_ms">Mean TTFT (ms)</option>
@@ -235,6 +237,7 @@
     ALL_ROWS.length = 0;
     runs.forEach(run => {
       run.points.forEach(p => {
+        const per_user = p.output_tput && p.concurrency ? p.output_tput / p.concurrency : null;
         ALL_ROWS.push({
           run_id: run.run_id,
           date: run.date,
@@ -245,7 +248,9 @@
           source: run.source || 'SLURM',
           gsm8k: run.gsm8k,
           ...p,
-          per_user_tput: p.output_tput && p.concurrency ? p.output_tput / p.concurrency : null,
+          per_user_tput: per_user,
+          interactivity: p.interactivity != null ? p.interactivity : per_user,
+          tput_per_gpu: p.tput_per_gpu != null ? p.tput_per_gpu : null,
         });
       });
     });
@@ -368,7 +373,9 @@
   // ============================================================
   let paretoChart = null;
   const METRIC_LABEL = {
+    interactivity: 'Interactivity (tok/s/user)',
     per_user_tput: 'Per-user output throughput (tok/s/user)',
+    tput_per_gpu: 'Token Throughput per GPU (tok/s/gpu)',
     total_tput: 'Total token throughput (tok/s)',
     output_tput: 'Output throughput (tok/s)',
     concurrency: 'Concurrency',
@@ -402,12 +409,15 @@
       title: ctx => ctx[0]?.dataset.label || '',
       label: ctx => {
         const r = ctx.raw._r;
-        return [
+        const lines = [
           `conc=${r.concurrency}  x=${ctx.parsed.x.toFixed(2)}  y=${ctx.parsed.y.toFixed(2)}`,
           `TPOT ${r.tpot_ms?.toFixed(2)} ms (p99 ${r.tpot_p99?.toFixed(2)})`,
           `TTFT ${r.ttft_ms?.toFixed(0)} ms (p99 ${r.ttft_p99?.toFixed(0)})`,
           `out_tput ${r.output_tput?.toFixed(1)} tok/s · per_user ${r.per_user_tput?.toFixed(1)}`,
         ];
+        if (r.total_gpu) lines.push(`GPU: ${r.total_gpu} (${r.num_prefill_gpu}P+${r.num_decode_gpu}D) TP ${r.prefill_tp}p${r.decode_tp}d`);
+        if (r.tput_per_gpu != null) lines.push(`tput/gpu ${r.tput_per_gpu.toFixed(1)} tok/s/gpu`);
+        return lines;
       },
     };
     paretoChart = new Chart(document.getElementById('paretoChart'), {type: 'line', data: {datasets}, options: opts});
