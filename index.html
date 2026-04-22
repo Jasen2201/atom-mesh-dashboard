@@ -449,7 +449,7 @@
       html += line(`Decode: ${r.num_decode_gpu} GPUs, TP: ${r.decode_tp}${r.decode_ep != null ? ', EP: '+r.decode_ep : ''}${dDpa}${dW}`);
     }
     html += line(`Concurrency: ${r.concurrency}`);
-    if (r.source === 'InferenceX') html += line(`Precision: FP8`);
+    if (r.source === 'InferenceX') html += line(`Precision: ${(r.precision || 'FP8').toUpperCase()}`);
     html += line(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
     html += line(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
     if (!pinned) html += '<div class="tt-hint">Click to pin</div>';
@@ -542,14 +542,13 @@
       // Layer 1: Pareto frontier smooth line (no dots on line itself)
       datasets.push({
         label, data: frontPts, borderColor: c, backgroundColor: 'transparent',
-        pointRadius: 0, pointHoverRadius: 0, borderWidth: isExternal ? 2 : 2.5,
-        borderDash: isExternal ? [6, 4] : [], showLine: true,
-        tension: 0.4, cubicInterpolationMode: 'monotone',
+        pointRadius: 0, pointHoverRadius: 0, borderWidth: 2.5,
+        showLine: true, tension: 0.4, cubicInterpolationMode: 'monotone',
       });
       // Layer 2: All data points as scatter (no connecting line)
       datasets.push({
         label: label + ' (points)', data: allPts, borderColor: c, backgroundColor: c,
-        pointRadius: isExternal ? 3.5 : 5, pointHoverRadius: 7,
+        pointRadius: 5, pointHoverRadius: 7,
         borderWidth: 0, showLine: false, legendHide: true,
       });
     });
@@ -583,8 +582,7 @@
         .map(r => ({x: r.concurrency, y: r[yKey]}))
         .sort((a, b) => a.x - b.x);
       const c = colorFor(label);
-      const isExternal = grp[0]?.source && grp[0].source !== 'SLURM';
-      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: isExternal ? 3 : 5, borderWidth: isExternal ? 1.5 : 2.5, borderDash: isExternal ? [6, 4] : [], showLine: true, tension: 0};
+      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, borderWidth: 2.5, showLine: true, tension: 0};
     });
     if (ttftChart) ttftChart.destroy();
     const opts = baseChartOptions('Concurrency', METRIC_LABEL[yKey]);
