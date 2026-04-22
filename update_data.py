@@ -58,14 +58,14 @@ def parse_gpu_count(config_label: str):
     """Extract total GPU count from config like '1p_tp4_1d_tp8' → (4, 8, 12)."""
     m = GPU_RE.search(config_label)
     if not m:
-        return None, None, None
+        return None, None, None, None, None
     n_prefill = int(m.group(1))
     tp_prefill = int(m.group(2))
     n_decode = int(m.group(3))
     tp_decode = int(m.group(4))
     pgpu = n_prefill * tp_prefill
     dgpu = n_decode * tp_decode
-    return pgpu, dgpu, pgpu + dgpu
+    return pgpu, dgpu, pgpu + dgpu, tp_prefill, tp_decode
 
 
 def read_gsm8k(gsm8k_dir: Path):
@@ -137,7 +137,7 @@ def parse_run_dir(run_dir: Path):
     if year is None:
         year = str(time.gmtime().tm_year)
 
-    pgpu, dgpu, total_gpu = parse_gpu_count(rest)
+    pgpu, dgpu, total_gpu, tp_prefill, tp_decode = parse_gpu_count(rest)
     pm = PRECISION_RE.search(rest)
     precision = pm.group(1) if pm else "fp8"
 
@@ -145,6 +145,8 @@ def parse_run_dir(run_dir: Path):
         p["num_prefill_gpu"] = pgpu
         p["num_decode_gpu"] = dgpu
         p["total_gpu"] = total_gpu
+        p["prefill_tp"] = tp_prefill
+        p["decode_tp"] = tp_decode
         p["precision"] = precision
         tpot = p.get("tpot_ms")
         p["interactivity"] = round(1000.0 / tpot, 4) if tpot else None
