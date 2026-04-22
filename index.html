@@ -77,10 +77,12 @@
 
     footer { margin-top: var(--gap-lg); padding-top: var(--gap-md); border-top: 1px solid var(--border-light); font-size: 11px; color: var(--text-tertiary); text-align: center; }
 
-    #chartTooltip { position: absolute; pointer-events: auto; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--text-secondary); z-index: 100; max-width: 480px; user-select: text; cursor: text; white-space: pre-wrap; line-height: 1.6; opacity: 0; transition: opacity 0.15s; }
+    #chartTooltip { position: absolute; pointer-events: none; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--text-secondary); z-index: 100; max-width: 480px; user-select: text; cursor: text; white-space: pre-wrap; line-height: 1.6; opacity: 0; transition: opacity 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
     #chartTooltip.visible { opacity: 1; }
+    #chartTooltip.pinned { pointer-events: auto; opacity: 1; border-color: var(--brand); }
     #chartTooltip .tt-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
     #chartTooltip .tt-line { color: var(--text-secondary); }
+    #chartTooltip .tt-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; font-style: italic; }
   </style>
 </head>
 <body>
@@ -419,43 +421,74 @@
     return stack;
   }
 
+  let tooltipPinned = false;
+  function tooltipHtml(r) {
+    const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
+    const title = r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label;
+    let html = `<div class="tt-title">${title}</div>`;
+    const line = t => `<div class="tt-line">${t}</div>`;
+    if (r.point_date || r.date) html += line(`Date: ${r.point_date || r.date}`);
+    if (r.image) html += line(`Image: ${r.image}`);
+    html += line(`Interactivity (tok/s/user): ${f(r.interactivity || r.per_user_tput, 12)}`);
+    if (r.tput_per_gpu != null) html += line(`Token Throughput per GPU (tok/s/gpu): ${f(r.tput_per_gpu, 12)}`);
+    if (r.input_tput_per_gpu != null) html += line(`Input Token Throughput per GPU: ${f(r.input_tput_per_gpu, 12)}`);
+    if (r.output_tput_per_gpu != null) html += line(`Output Token Throughput per GPU: ${f(r.output_tput_per_gpu, 12)}`);
+    if (r.total_gpu) {
+      html += line(`Total GPUs: ${r.total_gpu}`);
+      const pDpa = r.prefill_dpa != null ? `, DPA: ${r.prefill_dpa}` : '';
+      const pW = r.prefill_workers != null ? `, Workers: ${r.prefill_workers}` : '';
+      html += line(`Prefill: ${r.num_prefill_gpu} GPUs, TP: ${r.prefill_tp}${r.prefill_ep != null ? ', EP: '+r.prefill_ep : ''}${pDpa}${pW}`);
+      const dDpa = r.decode_dpa != null ? `, DPA: ${r.decode_dpa}` : '';
+      const dW = r.decode_workers != null ? `, Workers: ${r.decode_workers}` : '';
+      html += line(`Decode: ${r.num_decode_gpu} GPUs, TP: ${r.decode_tp}${r.decode_ep != null ? ', EP: '+r.decode_ep : ''}${dDpa}${dW}`);
+    }
+    html += line(`Concurrency: ${r.concurrency}`);
+    if (r.source === 'InferenceX') html += line(`Precision: FP8`);
+    html += line(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
+    html += line(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
+    return html;
+  }
+  function dismissTooltip() {
+    const el = document.getElementById('chartTooltip');
+    tooltipPinned = false;
+    el.classList.remove('visible', 'pinned');
+  }
   function externalTooltip(context) {
     const {chart, tooltip} = context;
     const el = document.getElementById('chartTooltip');
+    if (tooltipPinned) return;
     if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
     if (tooltip.dataPoints && tooltip.dataPoints.length) {
-      const dp = tooltip.dataPoints[0];
-      const r = dp.raw._r;
+      const r = tooltip.dataPoints[0].raw._r;
       if (!r) { el.classList.remove('visible'); return; }
-      const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
-      const title = r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label;
-      let html = `<div class="tt-title">${title}</div>`;
-      const line = t => `<div class="tt-line">${t}</div>`;
-      if (r.point_date || r.date) html += line(`Date: ${r.point_date || r.date}`);
-      if (r.image) html += line(`Image: ${r.image}`);
-      html += line(`Interactivity (tok/s/user): ${f(r.interactivity || r.per_user_tput, 12)}`);
-      if (r.tput_per_gpu != null) html += line(`Token Throughput per GPU (tok/s/gpu): ${f(r.tput_per_gpu, 12)}`);
-      if (r.input_tput_per_gpu != null) html += line(`Input Token Throughput per GPU: ${f(r.input_tput_per_gpu, 12)}`);
-      if (r.output_tput_per_gpu != null) html += line(`Output Token Throughput per GPU: ${f(r.output_tput_per_gpu, 12)}`);
-      if (r.total_gpu) {
-        html += line(`Total GPUs: ${r.total_gpu}`);
-        const pDpa = r.prefill_dpa != null ? `, DPA: ${r.prefill_dpa}` : '';
-        const pW = r.prefill_workers != null ? `, Workers: ${r.prefill_workers}` : '';
-        html += line(`Prefill: ${r.num_prefill_gpu} GPUs, TP: ${r.prefill_tp}${r.prefill_ep != null ? ', EP: '+r.prefill_ep : ''}${pDpa}${pW}`);
-        const dDpa = r.decode_dpa != null ? `, DPA: ${r.decode_dpa}` : '';
-        const dW = r.decode_workers != null ? `, Workers: ${r.decode_workers}` : '';
-        html += line(`Decode: ${r.num_decode_gpu} GPUs, TP: ${r.decode_tp}${r.decode_ep != null ? ', EP: '+r.decode_ep : ''}${dDpa}${dW}`);
-      }
-      html += line(`Concurrency: ${r.concurrency}`);
-      if (r.source === 'InferenceX') html += line(`Precision: FP8`);
-      html += line(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
-      html += line(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
-      el.innerHTML = html;
+      el.innerHTML = tooltipHtml(r) + '<div class="tt-hint">Click to pin &amp; copy</div>';
     }
     const pos = chart.canvas.getBoundingClientRect();
     el.style.left = pos.left + window.scrollX + tooltip.caretX + 12 + 'px';
     el.style.top = pos.top + window.scrollY + tooltip.caretY - 12 + 'px';
     el.classList.add('visible');
+  }
+  document.addEventListener('click', e => {
+    const el = document.getElementById('chartTooltip');
+    if (el.contains(e.target)) return;
+    if (tooltipPinned) { dismissTooltip(); return; }
+  });
+  function setupParetoClick(chart) {
+    chart.canvas.addEventListener('click', e => {
+      const el = document.getElementById('chartTooltip');
+      if (tooltipPinned) { dismissTooltip(); return; }
+      const points = chart.getElementsAtEventForMode(e, 'nearest', {intersect: false}, true);
+      if (!points.length) return;
+      const dp = points[0];
+      const r = chart.data.datasets[dp.datasetIndex].data[dp.index]._r;
+      if (!r) return;
+      el.innerHTML = tooltipHtml(r);
+      const pos = chart.canvas.getBoundingClientRect();
+      el.style.left = pos.left + window.scrollX + chart.tooltip.caretX + 12 + 'px';
+      el.style.top = pos.top + window.scrollY + chart.tooltip.caretY - 12 + 'px';
+      tooltipPinned = true;
+      el.classList.add('visible', 'pinned');
+    });
   }
 
   function buildPareto() {
@@ -495,6 +528,7 @@
     opts.plugins.tooltip.enabled = false;
     opts.plugins.tooltip.external = externalTooltip;
     paretoChart = new Chart(document.getElementById('paretoChart'), {type: 'line', data: {datasets}, options: opts});
+    setupParetoClick(paretoChart);
   }
   document.getElementById('paretoX').addEventListener('change', buildPareto);
   document.getElementById('paretoY').addEventListener('change', buildPareto);
