@@ -1,5 +1,5 @@
 {
-  "lastUpdate": 1776840380377,
+  "lastUpdate": 1776840676502,
   "source": "",
   "runs": [
     {
@@ -10,7 +10,7 @@
       "backend": "mori-sglang",
       "config_label": "mori-sglang_fp8_combined",
       "source": "InferenceX",
-      "n_points": 76,
+      "n_points": 33,
       "gsm8k": null,
       "file": "infx_mi355x_mori-sglang_fp8_isl8192_osl1024.json"
     },

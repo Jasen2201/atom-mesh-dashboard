@@ -66,9 +66,10 @@ def to_runs(rows):
     runs = []
     for (isl, osl), group_rows in sorted(groups.items()):
         latest_date = max(r["date"] for r in group_rows)
+        latest_rows = [r for r in group_rows if r["date"] == latest_date]
 
         points = []
-        for r in group_rows:
+        for r in latest_rows:
             m = r.get("metrics", {})
             ptp, dtp = r["prefill_tp"], r["decode_tp"]
             pgpu, dgpu = r["num_prefill_gpu"], r["num_decode_gpu"]
