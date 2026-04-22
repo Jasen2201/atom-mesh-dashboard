@@ -132,9 +132,6 @@ def to_runs(rows):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("-d", "--data-dir", default=str(Path(__file__).parent / "data"))
-    ap.add_argument("--prune", action="store_true",
-                    help="Also delete infx_*.json files whose config no longer appears "
-                         "in the API response. Default: keep them as a permanent snapshot.")
     args = ap.parse_args()
     data_dir = Path(args.data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -153,14 +150,6 @@ def main():
         written.add(f.name)
         print(f"  wrote {f.name}: {len(run['points'])} points (latest {run['date']})",
               file=sys.stderr)
-
-    leftovers = [f for f in data_dir.glob(f"{RUN_PREFIX}*.json") if f.name not in written]
-    if leftovers:
-        action = "removing" if args.prune else "kept (use --prune to delete)"
-        for f in leftovers:
-            print(f"  {action}: {f.name}", file=sys.stderr)
-            if args.prune:
-                f.unlink()
 
     rebuild_index(data_dir)
     print(f"Done. {len(runs)} InferenceX runs written to {data_dir}/", file=sys.stderr)
