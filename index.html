@@ -368,7 +368,7 @@
       animation: {duration: 200},
       interaction: {mode: 'nearest', intersect: false},
       plugins: {
-        legend: {position: 'right', labels: {color: c.legend, font: {size: 11}, boxWidth: 12}},
+        legend: {position: 'right', labels: {color: c.legend, font: {size: 11}, boxWidth: 12, filter: item => !item.text.endsWith('(points)')}},
         tooltip: {
           backgroundColor: c.tooltipBg, borderColor: c.tooltipBd, borderWidth: 1,
           titleColor: c.legend, bodyColor: c.legend, padding: 10, displayColors: true,
@@ -397,6 +397,22 @@
     e2el_ms: 'Mean E2E latency (ms)',
     gsm8k: 'GSM8K accuracy (strict-match)',
   };
+  // Pareto frontier (upper-left): sorted by X asc, Y strictly decreasing.
+  function paretoFrontUpperLeft(pts) {
+    if (pts.length <= 1) return pts;
+    const sorted = pts.slice().sort((a, b) => a.x === b.x ? b.y - a.y : a.x - b.x);
+    const stack = [];
+    for (const p of sorted) {
+      if (stack.length > 0 && p.x === stack[stack.length - 1].x) {
+        if (p.y > stack[stack.length - 1].y) stack[stack.length - 1] = p;
+        continue;
+      }
+      while (stack.length > 0 && p.y >= stack[stack.length - 1].y) stack.pop();
+      stack.push(p);
+    }
+    return stack;
+  }
+
   function buildPareto() {
     const rows = filterRows();
     const xKey = document.getElementById('paretoX').value;
@@ -406,14 +422,28 @@
       const k = `[${r.source}] ${r.date} · ISL${r.isl} OSL${r.osl} · ${r.config_label}`;
       (groups[k] = groups[k] || []).push(r);
     });
-    const datasets = Object.keys(groups).sort().map(label => {
-      const pts = groups[label]
+    const datasets = [];
+    Object.keys(groups).sort().forEach(label => {
+      const allPts = groups[label]
         .filter(r => r[xKey] != null && r[yKey] != null)
         .map(r => ({x: r[xKey], y: r[yKey], _r: r}))
         .sort((a, b) => a.x - b.x);
+      const frontPts = paretoFrontUpperLeft(allPts);
       const c = colorFor(label);
-      const isExternal = pts[0]?._r.source && pts[0]._r.source !== 'SLURM';
-      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: isExternal ? 3 : 5, pointHoverRadius: 7, borderWidth: isExternal ? 1.5 : 2.5, borderDash: isExternal ? [6, 4] : [], showLine: true, tension: 0.35};
+      const isExternal = allPts[0]?._r.source && allPts[0]._r.source !== 'SLURM';
+      // Layer 1: Pareto frontier smooth line (no dots on line itself)
+      datasets.push({
+        label, data: frontPts, borderColor: c, backgroundColor: 'transparent',
+        pointRadius: 0, pointHoverRadius: 0, borderWidth: isExternal ? 2 : 2.5,
+        borderDash: isExternal ? [6, 4] : [], showLine: true,
+        tension: 0.4, cubicInterpolationMode: 'monotone',
+      });
+      // Layer 2: All data points as scatter (no connecting line)
+      datasets.push({
+        label: label + ' (points)', data: allPts, borderColor: c, backgroundColor: c,
+        pointRadius: isExternal ? 3.5 : 5, pointHoverRadius: 7,
+        borderWidth: 0, showLine: false, legendHide: true,
+      });
     });
     if (paretoChart) paretoChart.destroy();
     const opts = baseChartOptions(METRIC_LABEL[xKey], METRIC_LABEL[yKey]);
