@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ATOM Mesh PD Benchmark</title>
+  <script>if(localStorage.getItem('amd-dash-theme')==='light')document.documentElement.setAttribute('data-theme','light');</script>
+  <style>
+    :root {
+      --bg-primary: #0b0c10; --bg-secondary: #141519; --bg-tertiary: #1c1d24;
+      --border: #303140; --border-light: #262733;
+      --text-primary: #eef0f6; --text-secondary: #bfc1d0; --text-tertiary: #7e8094;
+      --brand: #d86ecc; --ui: #8899b8; --ui-bright: #a4b3ce;
+      --accent-green: #6dbf80; --accent-red: #f25c4e; --accent-orange: #eda06a;
+      --accent-purple: #c49af5; --accent-yellow: #ddb040; --accent-blue: #6db2f0;
+      --gap-sm: 8px; --gap-md: 16px; --gap-lg: 24px; --radius: 8px;
+    }
+    [data-theme="light"] {
+      --bg-primary: #f5f6fa; --bg-secondary: #ffffff; --bg-tertiary: #ebedf3;
+      --border: #d0d3dc; --border-light: #e2e4eb;
+      --text-primary: #1a1c24; --text-secondary: #4a4d5e; --text-tertiary: #7e8094;
+      --brand: #c054b4; --ui: #5a6d8a; --ui-bright: #3d5278;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { overflow-x: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-primary); color: var(--text-secondary); font-size: 13px; }
+    .container { max-width: 1440px; margin: 0 auto; padding: var(--gap-lg); }
+    a { color: var(--ui-bright); text-decoration: none; }
+    code { font-family: "SF Mono", "Fira Code", Consolas, monospace; font-size: 12px; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--gap-md); padding-bottom: var(--gap-md); border-bottom: 2px solid var(--brand); margin-bottom: var(--gap-lg); }
+    .header-left { display: flex; flex-direction: column; gap: 2px; }
+    h1 { font-size: 20px; color: var(--text-primary); font-weight: 600; }
+    h1 .h1-sub { color: var(--text-secondary); font-weight: 400; margin-left: 6px; }
+    .meta { font-size: 12px; color: var(--text-tertiary); }
+    .header-right { display: flex; gap: var(--gap-sm); align-items: center; }
+    .theme-toggle { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 12px; }
+    .theme-toggle:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+    .filter-bar { display: flex; gap: var(--gap-sm); flex-wrap: wrap; align-items: center; margin-bottom: var(--gap-lg); padding: var(--gap-md); background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); }
+    .filter-bar label { font-size: 12px; color: var(--text-tertiary); margin-right: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-bar select { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 12px; min-width: 100px; }
+    .filter-bar select:hover { border-color: var(--ui); }
+    .filter-reset { background: none; color: var(--text-tertiary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 12px; cursor: pointer; margin-left: auto; }
+    .filter-reset:hover { color: var(--text-secondary); background: var(--bg-tertiary); }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--gap-md); margin-bottom: var(--gap-lg); }
+    .kpi-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--gap-md); }
+    .kpi-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .kpi-value { font-size: 24px; font-weight: 700; color: var(--text-primary); font-family: "SF Mono", "Fira Code", monospace; }
+    .kpi-unit { font-size: 13px; color: var(--text-tertiary); font-weight: 400; margin-left: 4px; }
+    .kpi-sub { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
+
+    .tabs { display: flex; gap: 2px; margin-bottom: var(--gap-md); border-bottom: 1px solid var(--border); }
+    .tab { background: none; border: none; color: var(--text-tertiary); padding: 10px 18px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .tab:hover { color: var(--text-secondary); }
+    .tab.active { color: var(--text-primary); border-bottom-color: var(--brand); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .chart-wrap { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--gap-md); }
+    .chart-controls { display: flex; gap: var(--gap-sm); align-items: center; flex-wrap: wrap; margin-bottom: var(--gap-md); }
+    .chart-controls label { font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .chart-controls select { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; font-size: 12px; }
+    .chart-canvas { position: relative; height: 520px; }
+    .empty-msg { padding: 60px 20px; text-align: center; color: var(--text-tertiary); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table th, table td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border-light); }
+    table th { background: var(--bg-tertiary); color: var(--text-primary); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; }
+    table th:hover { background: var(--border); }
+    table th.sort-asc::after { content: " ▲"; color: var(--ui-bright); }
+    table th.sort-desc::after { content: " ▼"; color: var(--ui-bright); }
+    table th:first-child, table td:first-child { text-align: left; }
+    table tbody tr:hover { background: var(--bg-tertiary); }
+    .num { font-family: "SF Mono", "Fira Code", monospace; color: var(--text-primary); }
+
+    footer { margin-top: var(--gap-lg); padding-top: var(--gap-md); border-top: 1px solid var(--border-light); font-size: 11px; color: var(--text-tertiary); text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <h1>ATOM Mesh PD Benchmark <span class="h1-sub">— SLURM nightly</span></h1>
+        <div class="meta" id="meta">Loading…</div>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle" id="themeToggle">☼ Theme</button>
+      </div>
+    </header>
+
+    <div class="filter-bar" id="filterBar">
+      <label>Model</label><select id="fModel"></select>
+      <label>Backend</label><select id="fBackend"></select>
+      <label>ISL</label><select id="fISL"></select>
+      <label>OSL</label><select id="fOSL"></select>
+      <label>Ratio</label><select id="fRatio"></select>
+      <label>Date</label><select id="fDate"></select>
+      <button class="filter-reset" id="filterReset">Reset</button>
+    </div>
+
+    <div class="kpi-row" id="kpiRow"></div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="pareto">Pareto (TPOT vs Throughput)</button>
+      <button class="tab" data-tab="ttft">TTFT vs Concurrency</button>
+      <button class="tab" data-tab="trend">Time Series</button>
+      <button class="tab" data-tab="table">Table</button>
+    </div>
+
+    <div class="tab-panel active" data-panel="pareto">
+      <div class="chart-wrap">
+        <div class="chart-controls">
+          <label>X</label>
+          <select id="paretoX">
+            <option value="per_user_tput">Per-user output throughput (tok/s/user)</option>
+            <option value="total_tput">Total token throughput (tok/s)</option>
+            <option value="output_tput">Output throughput (tok/s)</option>
+            <option value="concurrency">Concurrency</option>
+          </select>
+          <label>Y</label>
+          <select id="paretoY">
+            <option value="tpot_ms">Mean TPOT (ms)</option>
+            <option value="tpot_p99">P99 TPOT (ms)</option>
+            <option value="ttft_ms">Mean TTFT (ms)</option>
+            <option value="ttft_p99">P99 TTFT (ms)</option>
+            <option value="e2el_ms">Mean E2E latency (ms)</option>
+          </select>
+        </div>
+        <div class="chart-canvas"><canvas id="paretoChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="ttft">
+      <div class="chart-wrap">
+        <div class="chart-controls">
+          <label>Y</label>
+          <select id="ttftY">
+            <option value="ttft_ms">Mean TTFT (ms)</option>
+            <option value="ttft_p99">P99 TTFT (ms)</option>
+            <option value="tpot_ms">Mean TPOT (ms)</option>
+            <option value="output_tput">Output throughput (tok/s)</option>
+          </select>
+        </div>
+        <div class="chart-canvas"><canvas id="ttftChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="trend">
+      <div class="chart-wrap">
+        <div class="chart-controls">
+          <label>ISL</label><select id="trendISL"></select>
+          <label>OSL</label><select id="trendOSL"></select>
+          <label>Concurrency</label><select id="trendConc"></select>
+          <label>Ratio</label><select id="trendRatio"></select>
+          <label>Metric</label>
+          <select id="trendMetric">
+            <option value="tpot_ms">Mean TPOT (ms)</option>
+            <option value="ttft_ms">Mean TTFT (ms)</option>
+            <option value="output_tput">Output throughput (tok/s)</option>
+            <option value="total_tput">Total token throughput (tok/s)</option>
+            <option value="e2el_ms">Mean E2E latency (ms)</option>
+            <option value="gsm8k">GSM8K accuracy</option>
+          </select>
+        </div>
+        <div class="chart-canvas"><canvas id="trendChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" data-panel="table">
+      <div class="chart-wrap" style="overflow-x:auto;">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th data-key="date">Date</th>
+              <th data-key="config_label">Config</th>
+              <th data-key="isl">ISL</th>
+              <th data-key="osl">OSL</th>
+              <th data-key="concurrency">Conc</th>
+              <th data-key="ratio">Ratio</th>
+              <th data-key="ttft_ms">TTFT (ms)</th>
+              <th data-key="ttft_p99">TTFT P99</th>
+              <th data-key="tpot_ms">TPOT (ms)</th>
+              <th data-key="tpot_p99">TPOT P99</th>
+              <th data-key="output_tput">Output tok/s</th>
+              <th data-key="total_tput">Total tok/s</th>
+              <th data-key="per_user_tput">tok/s/user</th>
+              <th data-key="gsm8k">GSM8K</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      <span id="footerInfo"></span> · Source: <code id="footerSource"></code> ·
+      Rebuild with <code>./update_data.py</code>
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="data.js"></script>
+  <script>
+  // ============================================================
+  // Theme
+  // ============================================================
+  const themeBtn = document.getElementById('themeToggle');
+  themeBtn.addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'light' ? '' : 'light';
+    if (next) document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('amd-dash-theme', next || 'dark');
+    rebuildAll();
+  });
+
+  // ============================================================
+  // Data flattening
+  // ============================================================
+  const RAW = (window.BENCHMARK_DATA || {runs: []});
+  const ALL_ROWS = [];
+  RAW.runs.forEach(run => {
+    run.points.forEach(p => {
+      ALL_ROWS.push({
+        run_id: run.run_id,
+        date: run.date,
+        timestamp: run.timestamp,
+        model: run.model,
+        backend: run.backend,
+        config_label: run.config_label,
+        gsm8k: run.gsm8k,
+        ...p,
+        per_user_tput: p.output_tput && p.concurrency ? p.output_tput / p.concurrency : null,
+      });
+    });
+  });
+
+  // ============================================================
+  // Filters
+  // ============================================================
+  const FILTER_DEFS = [
+    {id: 'fModel', key: 'model'},
+    {id: 'fBackend', key: 'backend'},
+    {id: 'fISL', key: 'isl'},
+    {id: 'fOSL', key: 'osl'},
+    {id: 'fRatio', key: 'ratio'},
+    {id: 'fDate', key: 'date'},
+  ];
+  function uniqueSorted(rows, key) {
+    const s = new Set(rows.map(r => r[key]).filter(v => v !== null && v !== undefined));
+    return [...s].sort((a, b) => {
+      if (typeof a === 'number' && typeof b === 'number') return a - b;
+      return String(a).localeCompare(String(b));
+    });
+  }
+  function fillSelect(sel, vals, includeAll = true) {
+    sel.innerHTML = '';
+    if (includeAll) {
+      const opt = document.createElement('option');
+      opt.value = '__all__'; opt.textContent = 'All';
+      sel.appendChild(opt);
+    }
+    vals.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = String(v); opt.textContent = String(v);
+      sel.appendChild(opt);
+    });
+  }
+  FILTER_DEFS.forEach(({id, key}) => {
+    fillSelect(document.getElementById(id), uniqueSorted(ALL_ROWS, key));
+  });
+  function currentFilters() {
+    const f = {};
+    FILTER_DEFS.forEach(({id, key}) => {
+      const v = document.getElementById(id).value;
+      if (v !== '__all__') f[key] = v;
+    });
+    return f;
+  }
+  function filterRows() {
+    const f = currentFilters();
+    return ALL_ROWS.filter(r => {
+      for (const k in f) if (String(r[k]) !== f[k]) return false;
+      return true;
+    });
+  }
+  document.getElementById('filterReset').addEventListener('click', () => {
+    FILTER_DEFS.forEach(({id}) => { document.getElementById(id).value = '__all__'; });
+    rebuildAll();
+  });
+  FILTER_DEFS.forEach(({id}) => {
+    document.getElementById(id).addEventListener('change', rebuildAll);
+  });
+
+  // ============================================================
+  // Tabs
+  // ============================================================
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector(`.tab-panel[data-panel="${btn.dataset.tab}"]`).classList.add('active');
+      rebuildAll();
+    });
+  });
+
+  // ============================================================
+  // Color generator (stable hash → HSL)
+  // ============================================================
+  function colorFor(label) {
+    let h = 0;
+    for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) | 0;
+    const hue = Math.abs(h) % 360;
+    return `hsl(${hue}, 60%, 60%)`;
+  }
+
+  // ============================================================
+  // Theme-aware chart options
+  // ============================================================
+  function themeColors() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    return isLight
+      ? {grid: 'rgba(0,0,0,0.10)', tick: '#5a5d70', legend: '#4a4d5e', tooltipBg: '#ffffff', tooltipBd: '#d0d3dc'}
+      : {grid: 'rgba(255,255,255,0.08)', tick: '#bfc1d0', legend: '#bfc1d0', tooltipBg: '#1c1d24', tooltipBd: '#303140'};
+  }
+  function baseChartOptions(xTitle, yTitle, xType = 'linear') {
+    const c = themeColors();
+    return {
+      responsive: true, maintainAspectRatio: false,
+      animation: {duration: 200},
+      interaction: {mode: 'nearest', intersect: false},
+      plugins: {
+        legend: {position: 'right', labels: {color: c.legend, font: {size: 11}, boxWidth: 12}},
+        tooltip: {
+          backgroundColor: c.tooltipBg, borderColor: c.tooltipBd, borderWidth: 1,
+          titleColor: c.legend, bodyColor: c.legend, padding: 10, displayColors: true,
+        },
+      },
+      scales: {
+        x: {type: xType, title: {display: true, text: xTitle, color: c.legend}, grid: {color: c.grid}, ticks: {color: c.tick}},
+        y: {title: {display: true, text: yTitle, color: c.legend}, grid: {color: c.grid}, ticks: {color: c.tick}},
+      },
+    };
+  }
+
+  // ============================================================
+  // Pareto chart
+  // ============================================================
+  let paretoChart = null;
+  const METRIC_LABEL = {
+    per_user_tput: 'Per-user output throughput (tok/s/user)',
+    total_tput: 'Total token throughput (tok/s)',
+    output_tput: 'Output throughput (tok/s)',
+    concurrency: 'Concurrency',
+    tpot_ms: 'Mean TPOT (ms)', tpot_p99: 'P99 TPOT (ms)',
+    ttft_ms: 'Mean TTFT (ms)', ttft_p99: 'P99 TTFT (ms)',
+    e2el_ms: 'Mean E2E latency (ms)',
+    gsm8k: 'GSM8K accuracy (strict-match)',
+  };
+  function buildPareto() {
+    const rows = filterRows();
+    const xKey = document.getElementById('paretoX').value;
+    const yKey = document.getElementById('paretoY').value;
+    // Group rows by (run_id, isl, osl, ratio); each group is a line of concurrency points.
+    const groups = {};
+    rows.forEach(r => {
+      const k = `${r.date} · ISL${r.isl} OSL${r.osl} r${r.ratio} · ${r.config_label}`;
+      (groups[k] = groups[k] || []).push(r);
+    });
+    const datasets = Object.keys(groups).sort().map(label => {
+      const pts = groups[label]
+        .filter(r => r[xKey] != null && r[yKey] != null)
+        .map(r => ({x: r[xKey], y: r[yKey], _r: r}))
+        .sort((a, b) => a.x - b.x);
+      const c = colorFor(label);
+      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2, showLine: true, tension: 0};
+    });
+    if (paretoChart) paretoChart.destroy();
+    const opts = baseChartOptions(METRIC_LABEL[xKey], METRIC_LABEL[yKey]);
+    opts.plugins.tooltip.callbacks = {
+      title: ctx => ctx[0]?.dataset.label || '',
+      label: ctx => {
+        const r = ctx.raw._r;
+        return [
+          `conc=${r.concurrency}  x=${ctx.parsed.x.toFixed(2)}  y=${ctx.parsed.y.toFixed(2)}`,
+          `TPOT ${r.tpot_ms?.toFixed(2)} ms (p99 ${r.tpot_p99?.toFixed(2)})`,
+          `TTFT ${r.ttft_ms?.toFixed(0)} ms (p99 ${r.ttft_p99?.toFixed(0)})`,
+          `out_tput ${r.output_tput?.toFixed(1)} tok/s · per_user ${r.per_user_tput?.toFixed(1)}`,
+        ];
+      },
+    };
+    paretoChart = new Chart(document.getElementById('paretoChart'), {type: 'line', data: {datasets}, options: opts});
+  }
+  document.getElementById('paretoX').addEventListener('change', buildPareto);
+  document.getElementById('paretoY').addEventListener('change', buildPareto);
+
+  // ============================================================
+  // TTFT vs concurrency
+  // ============================================================
+  let ttftChart = null;
+  function buildTtft() {
+    const rows = filterRows();
+    const yKey = document.getElementById('ttftY').value;
+    const groups = {};
+    rows.forEach(r => {
+      const k = `${r.date} · ISL${r.isl} OSL${r.osl} r${r.ratio}`;
+      (groups[k] = groups[k] || []).push(r);
+    });
+    const datasets = Object.keys(groups).sort().map(label => {
+      const pts = groups[label]
+        .filter(r => r[yKey] != null)
+        .map(r => ({x: r.concurrency, y: r[yKey]}))
+        .sort((a, b) => a.x - b.x);
+      const c = colorFor(label);
+      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, borderWidth: 2, showLine: true, tension: 0};
+    });
+    if (ttftChart) ttftChart.destroy();
+    const opts = baseChartOptions('Concurrency', METRIC_LABEL[yKey]);
+    ttftChart = new Chart(document.getElementById('ttftChart'), {type: 'line', data: {datasets}, options: opts});
+  }
+  document.getElementById('ttftY').addEventListener('change', buildTtft);
+
+  // ============================================================
+  // Time series
+  // ============================================================
+  let trendChart = null;
+  function refreshTrendDropdowns() {
+    const rows = filterRows();
+    const opts = (key) => uniqueSorted(rows, key);
+    [['trendISL', 'isl'], ['trendOSL', 'osl'], ['trendConc', 'concurrency'], ['trendRatio', 'ratio']]
+      .forEach(([id, key]) => {
+        const sel = document.getElementById(id);
+        const prev = sel.value;
+        fillSelect(sel, opts(key), true);
+        if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+      });
+  }
+  function buildTrend() {
+    refreshTrendDropdowns();
+    const rows = filterRows();
+    const isl = document.getElementById('trendISL').value;
+    const osl = document.getElementById('trendOSL').value;
+    const conc = document.getElementById('trendConc').value;
+    const ratio = document.getElementById('trendRatio').value;
+    const metric = document.getElementById('trendMetric').value;
+    const sub = rows.filter(r => {
+      if (isl !== '__all__' && String(r.isl) !== isl) return false;
+      if (osl !== '__all__' && String(r.osl) !== osl) return false;
+      if (conc !== '__all__' && String(r.concurrency) !== conc) return false;
+      if (ratio !== '__all__' && String(r.ratio) !== ratio) return false;
+      return true;
+    });
+    const groups = {};
+    sub.forEach(r => {
+      const k = `${r.config_label} · ISL${r.isl} OSL${r.osl} c${r.concurrency} r${r.ratio}`;
+      (groups[k] = groups[k] || []).push(r);
+    });
+    const datasets = Object.keys(groups).sort().map(label => {
+      const pts = groups[label]
+        .filter(r => r[metric] != null)
+        .map(r => ({x: r.date, y: r[metric]}))
+        .sort((a, b) => a.x.localeCompare(b.x));
+      const c = colorFor(label);
+      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, borderWidth: 2, showLine: true, tension: 0};
+    });
+    if (trendChart) trendChart.destroy();
+    const opts = baseChartOptions('Date', METRIC_LABEL[metric]);
+    opts.scales.x.type = 'category';
+    trendChart = new Chart(document.getElementById('trendChart'), {type: 'line', data: {datasets}, options: opts});
+  }
+  ['trendISL', 'trendOSL', 'trendConc', 'trendRatio', 'trendMetric'].forEach(id => {
+    document.getElementById(id).addEventListener('change', buildTrend);
+  });
+
+  // ============================================================
+  // Table
+  // ============================================================
+  let tableSortKey = 'date', tableSortDir = -1;
+  function fmt(v, digits = 2) {
+    if (v == null) return '—';
+    if (typeof v === 'number') return v.toFixed(digits);
+    return String(v);
+  }
+  function buildTable() {
+    const rows = filterRows().slice();
+    rows.sort((a, b) => {
+      const av = a[tableSortKey], bv = b[tableSortKey];
+      if (av == null) return 1; if (bv == null) return -1;
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * tableSortDir;
+      return String(av).localeCompare(String(bv)) * tableSortDir;
+    });
+    const tbody = document.querySelector('#dataTable tbody');
+    tbody.innerHTML = '';
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.date}</td>
+        <td><code>${r.config_label}</code></td>
+        <td class="num">${r.isl}</td>
+        <td class="num">${r.osl}</td>
+        <td class="num">${r.concurrency}</td>
+        <td class="num">${r.ratio}</td>
+        <td class="num">${fmt(r.ttft_ms, 0)}</td>
+        <td class="num">${fmt(r.ttft_p99, 0)}</td>
+        <td class="num">${fmt(r.tpot_ms, 2)}</td>
+        <td class="num">${fmt(r.tpot_p99, 2)}</td>
+        <td class="num">${fmt(r.output_tput, 1)}</td>
+        <td class="num">${fmt(r.total_tput, 1)}</td>
+        <td class="num">${fmt(r.per_user_tput, 1)}</td>
+        <td class="num">${fmt(r.gsm8k, 4)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.querySelectorAll('#dataTable th').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.key === tableSortKey) th.classList.add(tableSortDir > 0 ? 'sort-asc' : 'sort-desc');
+    });
+  }
+  document.querySelectorAll('#dataTable th').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.key;
+      if (tableSortKey === k) tableSortDir *= -1;
+      else { tableSortKey = k; tableSortDir = 1; }
+      buildTable();
+    });
+  });
+
+  // ============================================================
+  // KPI
+  // ============================================================
+  function buildKpi() {
+    const rows = filterRows();
+    const kpiRow = document.getElementById('kpiRow');
+    if (!rows.length) {
+      kpiRow.innerHTML = '<div class="kpi-card"><div class="kpi-label">No data</div><div class="kpi-value" style="font-size:14px;">Adjust filters or run update_data.py</div></div>';
+      return;
+    }
+    rows.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    const latest = rows[0];
+    const numRuns = new Set(rows.map(r => r.run_id)).size;
+    const cards = [
+      {label: 'Latest TPOT', value: fmt(latest.tpot_ms, 2), unit: 'ms', sub: `c=${latest.concurrency} ISL${latest.isl}`},
+      {label: 'Latest TTFT', value: fmt(latest.ttft_ms, 0), unit: 'ms', sub: `p99 ${fmt(latest.ttft_p99, 0)}`},
+      {label: 'Latest Output tput', value: fmt(latest.output_tput, 0), unit: 'tok/s', sub: `${fmt(latest.per_user_tput, 1)} per user`},
+      {label: 'Latest Total tput', value: fmt(latest.total_tput, 0), unit: 'tok/s', sub: `${latest.completed} prompts`},
+      {label: 'GSM8K (latest run)', value: fmt(latest.gsm8k, 4), unit: '', sub: `${latest.model || ''}`},
+      {label: 'Coverage', value: String(rows.length), unit: 'pts', sub: `${numRuns} run(s)`},
+    ];
+    kpiRow.innerHTML = cards.map(c => `
+      <div class="kpi-card">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${c.value}<span class="kpi-unit">${c.unit ? ' ' + c.unit : ''}</span></div>
+        <div class="kpi-sub">${c.sub || ''}</div>
+      </div>
+    `).join('');
+  }
+
+  // ============================================================
+  // Header / footer meta
+  // ============================================================
+  function buildMeta() {
+    const ts = RAW.lastUpdate ? new Date(RAW.lastUpdate).toISOString().replace('T', ' ').slice(0, 19) : '—';
+    const numRuns = RAW.runs.length;
+    const numPts = ALL_ROWS.length;
+    document.getElementById('meta').textContent = `Updated ${ts}  ·  ${numRuns} run(s)  ·  ${numPts} sweep points`;
+    document.getElementById('footerInfo').textContent = `${numRuns} run(s), ${numPts} points`;
+    document.getElementById('footerSource').textContent = RAW.source || '—';
+  }
+
+  // ============================================================
+  // Drive
+  // ============================================================
+  function rebuildAll() {
+    buildKpi();
+    const active = document.querySelector('.tab.active').dataset.tab;
+    if (active === 'pareto') buildPareto();
+    else if (active === 'ttft') buildTtft();
+    else if (active === 'trend') buildTrend();
+    else if (active === 'table') buildTable();
+  }
+  buildMeta();
+  rebuildAll();
+  </script>
+</body>
+</html>
