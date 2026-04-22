@@ -1,6 +1,6 @@
 {
-  "lastUpdate": 1776844764555,
-  "source": "",
+  "lastUpdate": 1776847045625,
+  "source": "/it-share/yajizhan/slurm_logs",
   "runs": [
     {
       "run_id": "infx_b200_dynamo-trt_fp4_isl8192_osl1024",
@@ -10,6 +10,8 @@
       "backend": "dynamo-trt",
       "config_label": "b200_dynamo-trt_fp4",
       "source": "InferenceX",
+      "precision": null,
+      "hardware": "b200",
       "n_points": 10,
       "gsm8k": null,
       "file": "infx_b200_dynamo-trt_fp4_isl8192_osl1024.json"
@@ -22,6 +24,8 @@
       "backend": "mori-sglang",
       "config_label": "mi355x_mori-sglang_fp8",
       "source": "InferenceX",
+      "precision": null,
+      "hardware": "mi355x",
       "n_points": 16,
       "gsm8k": null,
       "file": "infx_mi355x_mori-sglang_fp8_isl8192_osl1024.json"
@@ -34,6 +38,8 @@
       "backend": "mori-sglang",
       "config_label": "mi355x_mori-sglang_fp4",
       "source": "InferenceX",
+      "precision": null,
+      "hardware": "mi355x",
       "n_points": 18,
       "gsm8k": null,
       "file": "infx_mi355x_mori-sglang_fp4_isl8192_osl1024.json"
@@ -46,6 +52,8 @@
       "backend": "dynamo-trt",
       "config_label": "b200_dynamo-trt_fp8",
       "source": "InferenceX",
+      "precision": null,
+      "hardware": "b200",
       "n_points": 8,
       "gsm8k": null,
       "file": "infx_b200_dynamo-trt_fp8_isl8192_osl1024.json"
@@ -58,6 +66,8 @@
       "backend": "sglang",
       "config_label": "ds_fp8_1p_tp4_1d_tp8_4103",
       "source": "SLURM",
+      "precision": "fp8",
+      "hardware": null,
       "n_points": 3,
       "gsm8k": 0.98,
       "file": "0421_ds_fp8_1p_tp4_1d_tp8_4103.json"
@@ -70,9 +80,25 @@
       "backend": "sglang",
       "config_label": "ds_fp8_1p_tp4_1d_tp8_4143",
       "source": "SLURM",
+      "precision": "fp8",
+      "hardware": null,
       "n_points": 8,
       "gsm8k": 0.9507202426080363,
       "file": "0422_ds_fp8_1p_tp4_1d_tp8_4143.json"
+    },
+    {
+      "run_id": "0422_ds_fp8_1p_tp8_1d_tp8_4151",
+      "date": "2026-04-22",
+      "timestamp": 1776846391000,
+      "model": "DeepSeek-R1",
+      "backend": "sglang",
+      "config_label": "ds_fp8_1p_tp8_1d_tp8_4151",
+      "source": "SLURM",
+      "precision": "fp8",
+      "hardware": null,
+      "n_points": 5,
+      "gsm8k": 0.9484457922668689,
+      "file": "0422_ds_fp8_1p_tp8_1d_tp8_4151.json"
     }
   ]
 }

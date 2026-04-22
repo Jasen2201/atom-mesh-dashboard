@@ -27,6 +27,7 @@ from pathlib import Path
 DIR_RE = re.compile(r"^(\d{4})_(.+)$")
 FILE_RE = re.compile(r"^pd-mesh-(\d+)-(\d+)-(\d+)-([\d.]+)\.json$")
 GPU_RE = re.compile(r"(\d+)p_tp(\d+)_(\d+)d_tp(\d+)")
+PRECISION_RE = re.compile(r"_(fp\d+)_")
 
 # Prefix used for SLURM run files so this script knows which entries are "ours".
 # Keep in sync with parse_run_dir(): the run_id is the directory name itself.
@@ -137,10 +138,14 @@ def parse_run_dir(run_dir: Path):
         year = str(time.gmtime().tm_year)
 
     pgpu, dgpu, total_gpu = parse_gpu_count(rest)
+    pm = PRECISION_RE.search(rest)
+    precision = pm.group(1) if pm else "fp8"
+
     for p in points:
         p["num_prefill_gpu"] = pgpu
         p["num_decode_gpu"] = dgpu
         p["total_gpu"] = total_gpu
+        p["precision"] = precision
         tpot = p.get("tpot_ms")
         p["interactivity"] = round(1000.0 / tpot, 4) if tpot else None
         total_t = p.get("total_tput")
@@ -156,6 +161,7 @@ def parse_run_dir(run_dir: Path):
         "model": model or "unknown",
         "backend": backend or "unknown",
         "config_label": rest,
+        "precision": precision,
         "source": "SLURM",
         "points": points,
         "gsm8k": read_gsm8k(run_dir / "gsm8k"),
@@ -181,6 +187,8 @@ def rebuild_index(data_dir: Path, source_filter: str = ""):
             "backend": r.get("backend"),
             "config_label": r.get("config_label"),
             "source": r.get("source", "SLURM"),
+            "precision": r.get("precision"),
+            "hardware": r.get("hardware"),
             "n_points": len(r.get("points", [])),
             "gsm8k": r.get("gsm8k"),
             "file": f.name,

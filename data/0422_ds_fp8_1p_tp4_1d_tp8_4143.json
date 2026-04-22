@@ -5,6 +5,7 @@
   "model": "DeepSeek-R1",
   "backend": "sglang",
   "config_label": "ds_fp8_1p_tp4_1d_tp8_4143",
+  "precision": "fp8",
   "source": "SLURM",
   "points": [
     {
@@ -27,6 +28,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 95.2817,
       "tput_per_gpu": 67.21,
       "output_tput_per_gpu": 7.5082
@@ -51,6 +53,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 22.1399,
       "tput_per_gpu": 1284.7505,
       "output_tput_per_gpu": 142.306
@@ -75,6 +78,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 75.4432,
       "tput_per_gpu": 801.7351,
       "output_tput_per_gpu": 88.8374
@@ -99,6 +103,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 93.8791,
       "tput_per_gpu": 130.2788,
       "output_tput_per_gpu": 14.6192
@@ -123,6 +128,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 56.1451,
       "tput_per_gpu": 1185.9589,
       "output_tput_per_gpu": 132.6232
@@ -147,6 +153,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 91.4947,
       "tput_per_gpu": 249.8208,
       "output_tput_per_gpu": 27.7906
@@ -171,6 +178,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 48.1531,
       "tput_per_gpu": 1755.5276,
       "output_tput_per_gpu": 194.7605
@@ -195,6 +203,7 @@
       "num_prefill_gpu": 4,
       "num_decode_gpu": 8,
       "total_gpu": 12,
+      "precision": "fp8",
       "interactivity": 86.0963,
       "tput_per_gpu": 461.4069,
       "output_tput_per_gpu": 51.8699

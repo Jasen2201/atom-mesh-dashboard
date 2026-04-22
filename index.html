@@ -547,15 +547,49 @@
     });
   }
 
+  const GPU_CFG_RE = /(\d+p_tp\d+_\d+d_tp\d+)/;
+  function gpuConfigKey(configLabel) {
+    const m = GPU_CFG_RE.exec(configLabel || '');
+    return m ? m[1] : configLabel;
+  }
+
+  function aggregateForPareto(rows) {
+    // Group by (source, hardware, precision, ISL, OSL).
+    // For SLURM: multiple GPU configs → merge into one curve per (precision, ISL, OSL).
+    //   Within each GPU config, keep only the latest date's points.
+    // For InferenceX: already combined by fetch_external.py.
+    const curves = {};
+    rows.forEach(r => {
+      const isSlurm = (r.source || '') === 'SLURM';
+      const prec = (r.precision || 'fp8').toUpperCase();
+      const curveKey = isSlurm
+        ? `ATOM ${prec} · ISL${r.isl} OSL${r.osl}`
+        : `${(r.hardware || '').toUpperCase()} ${prec} · ISL${r.isl} OSL${r.osl} · ${r.backend}`;
+      if (!curves[curveKey]) curves[curveKey] = {};
+      const cfgKey = isSlurm ? gpuConfigKey(r.config_label) : '__combined__';
+      const prev = curves[curveKey][cfgKey];
+      if (!prev || r.date > prev.date) {
+        curves[curveKey][cfgKey] = {date: r.date, rows: []};
+      }
+      if (r.date === curves[curveKey][cfgKey].date) {
+        curves[curveKey][cfgKey].rows.push(r);
+      }
+    });
+    const result = {};
+    for (const [curveKey, cfgs] of Object.entries(curves)) {
+      result[curveKey] = [];
+      for (const cfg of Object.values(cfgs)) {
+        result[curveKey].push(...cfg.rows);
+      }
+    }
+    return result;
+  }
+
   function buildPareto() {
     const rows = filterRows();
     const xKey = document.getElementById('paretoX').value;
     const yKey = document.getElementById('paretoY').value;
-    const groups = {};
-    rows.forEach(r => {
-      const k = `[${r.source}] ${r.date} · ISL${r.isl} OSL${r.osl} · ${r.config_label}`;
-      (groups[k] = groups[k] || []).push(r);
-    });
+    const groups = aggregateForPareto(rows);
     const datasets = [];
     Object.keys(groups).sort().forEach(label => {
       const allPts = groups[label]
