@@ -77,10 +77,12 @@
 
     footer { margin-top: var(--gap-lg); padding-top: var(--gap-md); border-top: 1px solid var(--border-light); font-size: 11px; color: var(--text-tertiary); text-align: center; }
 
-    #chartTooltip { position: absolute; pointer-events: none; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--text-secondary); z-index: 100; max-width: 480px; user-select: text; cursor: text; white-space: pre-wrap; line-height: 1.6; opacity: 0; transition: opacity 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
-    #chartTooltip.visible { opacity: 1; }
-    #chartTooltip.pinned { pointer-events: auto; opacity: 1; border-color: var(--brand); }
-    #chartTooltip .tt-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    #chartTooltip { position: fixed; display: none; pointer-events: none; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--text-secondary); z-index: 1000; max-width: 480px; user-select: text; cursor: text; white-space: pre-wrap; line-height: 1.6; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+    #chartTooltip.hover { display: block; pointer-events: none; }
+    #chartTooltip.pinned { display: block; pointer-events: auto; border-color: var(--brand); border-width: 2px; }
+    #chartTooltip .tt-close { position: absolute; top: 4px; right: 8px; cursor: pointer; color: var(--text-tertiary); font-size: 16px; line-height: 1; padding: 2px 4px; }
+    #chartTooltip .tt-close:hover { color: var(--text-primary); }
+    #chartTooltip .tt-title { font-weight: 600; color: var(--text-primary); margin-bottom: 4px; padding-right: 20px; }
     #chartTooltip .tt-line { color: var(--text-secondary); }
     #chartTooltip .tt-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; font-style: italic; }
   </style>
@@ -422,10 +424,14 @@
   }
 
   let tooltipPinned = false;
-  function tooltipHtml(r) {
+  const ttEl = document.getElementById('chartTooltip');
+
+  function tooltipHtml(r, pinned) {
     const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
     const title = r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label;
-    let html = `<div class="tt-title">${title}</div>`;
+    let html = '';
+    if (pinned) html += '<span class="tt-close">&times;</span>';
+    html += `<div class="tt-title">${title}</div>`;
     const line = t => `<div class="tt-line">${t}</div>`;
     if (r.point_date || r.date) html += line(`Date: ${r.point_date || r.date}`);
     if (r.image) html += line(`Image: ${r.image}`);
@@ -446,48 +452,72 @@
     if (r.source === 'InferenceX') html += line(`Precision: FP8`);
     html += line(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
     html += line(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
+    if (!pinned) html += '<div class="tt-hint">Click to pin</div>';
     return html;
   }
+
   function dismissTooltip() {
-    const el = document.getElementById('chartTooltip');
     tooltipPinned = false;
-    el.classList.remove('visible', 'pinned');
+    ttEl.className = '';
+    ttEl.style.display = 'none';
   }
-  function externalTooltip(context) {
-    const {chart, tooltip} = context;
-    const el = document.getElementById('chartTooltip');
-    if (tooltipPinned) return;
-    if (tooltip.opacity === 0) { el.classList.remove('visible'); return; }
-    if (tooltip.dataPoints && tooltip.dataPoints.length) {
-      const r = tooltip.dataPoints[0].raw._r;
-      if (!r) { el.classList.remove('visible'); return; }
-      el.innerHTML = tooltipHtml(r) + '<div class="tt-hint">Click to pin &amp; copy</div>';
+
+  function showTooltipAt(r, x, y, pinned) {
+    ttEl.innerHTML = tooltipHtml(r, pinned);
+    ttEl.style.left = x + 'px';
+    ttEl.style.top = y + 'px';
+    tooltipPinned = pinned;
+    ttEl.className = pinned ? 'pinned' : 'hover';
+    ttEl.style.display = 'block';
+    if (pinned) {
+      const closeBtn = ttEl.querySelector('.tt-close');
+      if (closeBtn) closeBtn.addEventListener('click', e => { e.stopPropagation(); dismissTooltip(); });
     }
-    const pos = chart.canvas.getBoundingClientRect();
-    el.style.left = pos.left + window.scrollX + tooltip.caretX + 12 + 'px';
-    el.style.top = pos.top + window.scrollY + tooltip.caretY - 12 + 'px';
-    el.classList.add('visible');
   }
-  document.addEventListener('click', e => {
-    const el = document.getElementById('chartTooltip');
-    if (el.contains(e.target)) return;
-    if (tooltipPinned) { dismissTooltip(); return; }
-  });
-  function setupParetoClick(chart) {
-    chart.canvas.addEventListener('click', e => {
-      const el = document.getElementById('chartTooltip');
+
+  // Dismiss pinned tooltip on outside click or Escape
+  ttEl.addEventListener('mousedown', e => e.stopPropagation());
+  ttEl.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('mousedown', () => { if (tooltipPinned) dismissTooltip(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && tooltipPinned) dismissTooltip(); });
+
+  function findNearestPoint(chart, evt) {
+    const elems = chart.getElementsAtEventForMode(evt, 'nearest', {intersect: false}, true);
+    if (!elems.length) return null;
+    const dp = elems[0];
+    const raw = chart.data.datasets[dp.datasetIndex].data[dp.index];
+    return raw?._r ? {r: raw._r, elem: elems[0]} : null;
+  }
+
+  function setupParetoInteraction(chart) {
+    let hoverTimer = null;
+    // Hover: show tooltip on mousemove near a point
+    chart.canvas.addEventListener('mousemove', e => {
+      if (tooltipPinned) return;
+      clearTimeout(hoverTimer);
+      hoverTimer = setTimeout(() => {
+        const hit = findNearestPoint(chart, e);
+        if (!hit) { if (!tooltipPinned) ttEl.style.display = 'none'; return; }
+        const rect = chart.canvas.getBoundingClientRect();
+        const meta = chart.getDatasetMeta(hit.elem.datasetIndex);
+        const pt = meta.data[hit.elem.index];
+        showTooltipAt(hit.r, rect.left + pt.x + 14, rect.top + pt.y - 14, false);
+      }, 30);
+    });
+    chart.canvas.addEventListener('mouseleave', () => {
+      clearTimeout(hoverTimer);
+      if (!tooltipPinned) ttEl.style.display = 'none';
+    });
+    // Click: pin tooltip
+    chart.canvas.addEventListener('mousedown', e => {
+      e.stopPropagation(); // prevent document mousedown from dismissing immediately
       if (tooltipPinned) { dismissTooltip(); return; }
-      const points = chart.getElementsAtEventForMode(e, 'nearest', {intersect: false}, true);
-      if (!points.length) return;
-      const dp = points[0];
-      const r = chart.data.datasets[dp.datasetIndex].data[dp.index]._r;
-      if (!r) return;
-      el.innerHTML = tooltipHtml(r);
-      const pos = chart.canvas.getBoundingClientRect();
-      el.style.left = pos.left + window.scrollX + chart.tooltip.caretX + 12 + 'px';
-      el.style.top = pos.top + window.scrollY + chart.tooltip.caretY - 12 + 'px';
-      tooltipPinned = true;
-      el.classList.add('visible', 'pinned');
+      const hit = findNearestPoint(chart, e);
+      if (!hit) return;
+      const rect = chart.canvas.getBoundingClientRect();
+      const meta = chart.getDatasetMeta(hit.elem.datasetIndex);
+      const pt = meta.data[hit.elem.index];
+      showTooltipAt(hit.r, rect.left + pt.x + 14, rect.top + pt.y - 14, true);
     });
   }
 
@@ -524,11 +554,12 @@
       });
     });
     if (paretoChart) paretoChart.destroy();
+    dismissTooltip();
     const opts = baseChartOptions(METRIC_LABEL[xKey], METRIC_LABEL[yKey]);
     opts.plugins.tooltip.enabled = false;
-    opts.plugins.tooltip.external = externalTooltip;
+    opts.interaction = {mode: 'nearest', intersect: false};
     paretoChart = new Chart(document.getElementById('paretoChart'), {type: 'line', data: {datasets}, options: opts});
-    setupParetoClick(paretoChart);
+    setupParetoInteraction(paretoChart);
   }
   document.getElementById('paretoX').addEventListener('change', buildPareto);
   document.getElementById('paretoY').addEventListener('change', buildPareto);

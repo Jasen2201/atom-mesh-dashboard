@@ -29,6 +29,7 @@ API = "https://inferencex.semianalysis.com/api/v1/benchmarks?model=DeepSeek-R1-0
 HARDWARE = "mi355x"
 FRAMEWORK = "mori-sglang"
 PRECISION = "fp8"
+SPEC_METHOD = "none"
 RUN_PREFIX = "infx_"
 ISL_OSL_FILTER = [(8192, 1024)]
 
@@ -50,9 +51,11 @@ def to_runs(rows):
         if r.get("hardware") == HARDWARE
         and r.get("framework") == FRAMEWORK
         and r.get("precision") == PRECISION
+        and r.get("spec_method") == SPEC_METHOD
     ]
     print(f"{len(matches)} rows after filter "
-          f"(hardware={HARDWARE}, framework={FRAMEWORK}, precision={PRECISION})",
+          f"(hardware={HARDWARE}, framework={FRAMEWORK}, precision={PRECISION}, "
+          f"spec_method={SPEC_METHOD})",
           file=sys.stderr)
 
     # Group by (ISL, OSL) — all configs merge into one combined Pareto run.
