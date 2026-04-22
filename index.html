@@ -448,6 +448,43 @@
     return stack;
   }
 
+  // D3 curveMonotoneX — exact algorithm from d3-shape source.
+  // Generates dense interpolated points so Chart.js just draws straight segments.
+  function d3MonotoneX(points, nPerSeg = 24) {
+    const n = points.length;
+    if (n <= 2) return points;
+    const t = new Array(n);
+    for (let i = 1; i < n - 1; i++) {
+      const h0 = points[i].x - points[i - 1].x;
+      const h1 = points[i + 1].x - points[i].x;
+      const s0 = (points[i].y - points[i - 1].y) / (h0 || (h1 < 0 ? -0 : 0));
+      const s1 = (points[i + 1].y - points[i].y) / (h1 || (h0 < 0 ? -0 : 0));
+      const p = (s0 * h1 + s1 * h0) / (h0 + h1);
+      const sgn = (s0 < 0 ? -1 : 1) + (s1 < 0 ? -1 : 1);
+      t[i] = sgn * Math.min(Math.abs(s0), Math.abs(s1), 0.5 * Math.abs(p)) || 0;
+    }
+    const hF = points[1].x - points[0].x;
+    t[0] = hF ? (3 * (points[1].y - points[0].y) / hF - t[1]) / 2 : t[1];
+    const hL = points[n - 1].x - points[n - 2].x;
+    t[n - 1] = hL ? (3 * (points[n - 1].y - points[n - 2].y) / hL - t[n - 2]) / 2 : t[n - 2];
+    const out = [];
+    for (let i = 0; i < n - 1; i++) {
+      const x0 = points[i].x, y0 = points[i].y;
+      const x1 = points[i + 1].x, y1 = points[i + 1].y;
+      const dx = (x1 - x0) / 3;
+      const cp1x = x0 + dx, cp1y = y0 + dx * t[i];
+      const cp2x = x1 - dx, cp2y = y1 - dx * t[i + 1];
+      for (let j = (i === 0 ? 0 : 1); j <= nPerSeg; j++) {
+        const u = j / nPerSeg, v = 1 - u;
+        out.push({
+          x: v * v * v * x0 + 3 * v * v * u * cp1x + 3 * v * u * u * cp2x + u * u * u * x1,
+          y: v * v * v * y0 + 3 * v * v * u * cp1y + 3 * v * u * u * cp2y + u * u * u * y1,
+        });
+      }
+    }
+    return out;
+  }
+
   let tooltipPinned = false;
   const ttEl = document.getElementById('chartTooltip');
 
@@ -598,11 +635,11 @@
         .sort((a, b) => a.x - b.x);
       const frontPts = paretoFrontUpperLeft(allPts);
       const c = colorFor(label, groups[label]);
-      // Layer 1: Pareto frontier smooth line (no dots on line itself)
+      const smoothPts = d3MonotoneX(frontPts);
       datasets.push({
-        label, data: frontPts, borderColor: c, backgroundColor: 'transparent',
+        label, data: smoothPts, borderColor: c, backgroundColor: 'transparent',
         pointRadius: 0, pointHoverRadius: 0, borderWidth: 2.5,
-        showLine: true, tension: 0.3, cubicInterpolationMode: 'monotone',
+        showLine: true, tension: 0,
       });
       // Layer 2: All data points as scatter (no connecting line)
       datasets.push({
