@@ -1,0 +1,48 @@
+{
+  "run_id": "infx_mi355x_mori-sglang_fp8_1p1d_16+8gpu_disagg_isl8192_osl1024",
+  "date": "2026-02-23",
+  "timestamp": 1771804800000,
+  "model": "DeepSeek-R1-0528",
+  "backend": "mori-sglang",
+  "config_label": "mori-sglang_fp8_1p1d_16+8gpu_disagg",
+  "source": "InferenceX",
+  "points": [
+    {
+      "isl": 8192,
+      "osl": 1024,
+      "concurrency": 1024,
+      "ratio": null,
+      "ttft_ms": 60004.1311,
+      "ttft_p99": 130570.5615,
+      "tpot_ms": 54.1162,
+      "tpot_p99": 57.3321,
+      "itl_ms": 54.1197,
+      "e2el_ms": 109258.1978,
+      "output_tput": 18922.2383,
+      "total_tput": null,
+      "req_tput": null,
+      "completed": null,
+      "duration": null,
+      "num_prompts": null
+    },
+    {
+      "isl": 8192,
+      "osl": 1024,
+      "concurrency": 2048,
+      "ratio": null,
+      "ttft_ms": 122815.0612,
+      "ttft_p99": 201555.2726,
+      "tpot_ms": 57.0429,
+      "tpot_p99": 61.6126,
+      "itl_ms": 57.0546,
+      "e2el_ms": 173405.2788,
+      "output_tput": 35902.7919,
+      "total_tput": null,
+      "req_tput": null,
+      "completed": null,
+      "duration": null,
+      "num_prompts": null
+    }
+  ],
+  "gsm8k": null
+}

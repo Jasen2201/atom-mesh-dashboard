@@ -91,11 +91,12 @@
     </header>
 
     <div class="filter-bar" id="filterBar">
+      <label>Source</label><select id="fSource"></select>
       <label>Model</label><select id="fModel"></select>
       <label>Backend</label><select id="fBackend"></select>
+      <label>Config</label><select id="fConfig"></select>
       <label>ISL</label><select id="fISL"></select>
       <label>OSL</label><select id="fOSL"></select>
-      <label>Ratio</label><select id="fRatio"></select>
       <label>Date</label><select id="fDate"></select>
       <button class="filter-reset" id="filterReset">Reset</button>
     </div>
@@ -241,6 +242,7 @@
           model: run.model,
           backend: run.backend,
           config_label: run.config_label,
+          source: run.source || 'SLURM',
           gsm8k: run.gsm8k,
           ...p,
           per_user_tput: p.output_tput && p.concurrency ? p.output_tput / p.concurrency : null,
@@ -253,11 +255,12 @@
   // Filters
   // ============================================================
   const FILTER_DEFS = [
+    {id: 'fSource', key: 'source'},
     {id: 'fModel', key: 'model'},
     {id: 'fBackend', key: 'backend'},
+    {id: 'fConfig', key: 'config_label'},
     {id: 'fISL', key: 'isl'},
     {id: 'fOSL', key: 'osl'},
-    {id: 'fRatio', key: 'ratio'},
     {id: 'fDate', key: 'date'},
   ];
   function uniqueSorted(rows, key) {
@@ -381,7 +384,7 @@
     // Group rows by (run_id, isl, osl, ratio); each group is a line of concurrency points.
     const groups = {};
     rows.forEach(r => {
-      const k = `${r.date} · ISL${r.isl} OSL${r.osl} r${r.ratio} · ${r.config_label}`;
+      const k = `[${r.source}] ${r.date} · ISL${r.isl} OSL${r.osl} · ${r.config_label}`;
       (groups[k] = groups[k] || []).push(r);
     });
     const datasets = Object.keys(groups).sort().map(label => {
@@ -390,7 +393,8 @@
         .map(r => ({x: r[xKey], y: r[yKey], _r: r}))
         .sort((a, b) => a.x - b.x);
       const c = colorFor(label);
-      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2, showLine: true, tension: 0};
+      const isExternal = pts[0]?._r.source && pts[0]._r.source !== 'SLURM';
+      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: isExternal ? 3 : 5, pointHoverRadius: 7, borderWidth: isExternal ? 1.5 : 2.5, borderDash: isExternal ? [6, 4] : [], showLine: true, tension: 0};
     });
     if (paretoChart) paretoChart.destroy();
     const opts = baseChartOptions(METRIC_LABEL[xKey], METRIC_LABEL[yKey]);
@@ -424,12 +428,14 @@
       (groups[k] = groups[k] || []).push(r);
     });
     const datasets = Object.keys(groups).sort().map(label => {
-      const pts = groups[label]
+      const grp = groups[label];
+      const pts = grp
         .filter(r => r[yKey] != null)
         .map(r => ({x: r.concurrency, y: r[yKey]}))
         .sort((a, b) => a.x - b.x);
       const c = colorFor(label);
-      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: 5, borderWidth: 2, showLine: true, tension: 0};
+      const isExternal = grp[0]?.source && grp[0].source !== 'SLURM';
+      return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: isExternal ? 3 : 5, borderWidth: isExternal ? 1.5 : 2.5, borderDash: isExternal ? [6, 4] : [], showLine: true, tension: 0};
     });
     if (ttftChart) ttftChart.destroy();
     const opts = baseChartOptions('Concurrency', METRIC_LABEL[yKey]);

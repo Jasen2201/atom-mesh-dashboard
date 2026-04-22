@@ -27,6 +27,11 @@ from pathlib import Path
 DIR_RE = re.compile(r"^(\d{4})_(.+)$")
 FILE_RE = re.compile(r"^pd-mesh-(\d+)-(\d+)-(\d+)-([\d.]+)\.json$")
 
+# Prefix used for SLURM run files so this script knows which entries are "ours".
+# Keep in sync with parse_run_dir(): the run_id is the directory name itself.
+SLURM_PREFIX = ""  # SLURM run_ids look like "0421_..." (digits)
+EXTERNAL_PREFIXES = ("infx_",)  # per-source prefixes update_data.py must NOT touch
+
 METRIC_KEYS = [
     ("ttft_ms", "mean_ttft_ms"),
     ("ttft_p99", "p99_ttft_ms"),
@@ -124,9 +129,43 @@ def parse_run_dir(run_dir: Path):
         "model": model or "unknown",
         "backend": backend or "unknown",
         "config_label": rest,
+        "source": "SLURM",
         "points": points,
         "gsm8k": read_gsm8k(run_dir / "gsm8k"),
     }
+
+
+def rebuild_index(data_dir: Path, source_filter: str = ""):
+    """Read every per-run *.json under data_dir and rewrite data_dir/index.json."""
+    runs = []
+    for f in sorted(data_dir.glob("*.json")):
+        if f.name == "index.json":
+            continue
+        try:
+            r = json.loads(f.read_text())
+        except Exception as e:
+            print(f"  WARN: skip malformed {f.name}: {e}", file=sys.stderr)
+            continue
+        runs.append({
+            "run_id": r.get("run_id", f.stem),
+            "date": r.get("date"),
+            "timestamp": r.get("timestamp"),
+            "model": r.get("model"),
+            "backend": r.get("backend"),
+            "config_label": r.get("config_label"),
+            "source": r.get("source", "SLURM"),
+            "n_points": len(r.get("points", [])),
+            "gsm8k": r.get("gsm8k"),
+            "file": f.name,
+        })
+    runs.sort(key=lambda x: (x.get("date") or "", x.get("run_id") or ""))
+    index = {
+        "lastUpdate": int(time.time() * 1000),
+        "source": source_filter,
+        "runs": runs,
+    }
+    (data_dir / "index.json").write_text(json.dumps(index, indent=2) + "\n")
+    return runs
 
 
 def main():
@@ -143,7 +182,7 @@ def main():
     data_dir = Path(args.data_dir)
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    runs = []
+    n_pts = 0
     written_files = set()
     for run_dir in sorted(logs_dir.iterdir()):
         if not run_dir.is_dir():
@@ -151,43 +190,29 @@ def main():
         run = parse_run_dir(run_dir)
         if not run:
             continue
-        runs.append(run)
         run_file = f"{run['run_id']}.json"
         (data_dir / run_file).write_text(json.dumps(run, indent=2) + "\n")
         written_files.add(run_file)
+        n_pts += len(run["points"])
         print(f"  {run['run_id']}: {len(run['points'])} points, gsm8k={run['gsm8k']}",
               file=sys.stderr)
 
-    index = {
-        "lastUpdate": int(time.time() * 1000),
-        "source": str(logs_dir),
-        "runs": [
-            {
-                "run_id": r["run_id"],
-                "date": r["date"],
-                "timestamp": r["timestamp"],
-                "model": r["model"],
-                "backend": r["backend"],
-                "config_label": r["config_label"],
-                "n_points": len(r["points"]),
-                "gsm8k": r["gsm8k"],
-                "file": f"{r['run_id']}.json",
-            }
-            for r in runs
-        ],
-    }
-    (data_dir / "index.json").write_text(json.dumps(index, indent=2) + "\n")
-
-    # Drop per-run JSONs whose source dir disappeared from logs_dir.
-    stale = [
-        f for f in data_dir.glob("*.json")
-        if f.name != "index.json" and f.name not in written_files
-    ]
-    for f in stale:
+    # Stale removal: only touch files this script "owns" — SLURM run files
+    # match the directory naming convention `<MMDD>_..._<jobid>`. Files written
+    # by other scripts (e.g. fetch_external.py → `infx_*.json`) are left alone.
+    for f in data_dir.glob("*.json"):
+        if f.name == "index.json" or f.name in written_files:
+            continue
+        if any(f.name.startswith(p) for p in EXTERNAL_PREFIXES):
+            continue
+        if not DIR_RE.match(f.stem):
+            continue
         print(f"  removing stale {f.name}", file=sys.stderr)
         f.unlink()
 
-    print(f"Wrote {len(runs)} runs ({sum(len(r['points']) for r in runs)} points) to {data_dir}/",
+    runs = rebuild_index(data_dir, source_filter=str(logs_dir))
+    print(f"Wrote {len(written_files)} SLURM runs ({n_pts} points). "
+          f"index.json now lists {len(runs)} runs in total.",
           file=sys.stderr)
 
 
