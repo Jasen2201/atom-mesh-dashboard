@@ -30,6 +30,7 @@ HARDWARE = "mi355x"
 FRAMEWORK = "mori-sglang"
 PRECISION = "fp8"
 RUN_PREFIX = "infx_"
+ISL_OSL_FILTER = [(8192, 1024)]
 
 
 def fetch():
@@ -57,16 +58,17 @@ def to_runs(rows):
     # Group by (ISL, OSL) — all configs merge into one combined Pareto run.
     groups = defaultdict(list)
     for r in matches:
-        groups[(r["isl"], r["osl"])].append(r)
+        key = (r["isl"], r["osl"])
+        if ISL_OSL_FILTER and key not in ISL_OSL_FILTER:
+            continue
+        groups[key].append(r)
 
     runs = []
     for (isl, osl), group_rows in sorted(groups.items()):
-        # Only keep rows from the latest date, matching InferenceX's display.
         latest_date = max(r["date"] for r in group_rows)
-        latest_rows = [r for r in group_rows if r["date"] == latest_date]
 
         points = []
-        for r in latest_rows:
+        for r in group_rows:
             m = r.get("metrics", {})
             ptp, dtp = r["prefill_tp"], r["decode_tp"]
             pgpu, dgpu = r["num_prefill_gpu"], r["num_decode_gpu"]
