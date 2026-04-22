@@ -397,24 +397,6 @@
     e2el_ms: 'Mean E2E latency (ms)',
     gsm8k: 'GSM8K accuracy (strict-match)',
   };
-  // Pareto frontier — matches InferenceX's paretoFrontUpperLeft algorithm.
-  // Upper-left front: sorted by X asc, Y must be strictly decreasing.
-  // Keeps only the best tradeoff points (higher Y at lower X).
-  function paretoFrontUpperLeft(pts) {
-    if (pts.length <= 1) return pts;
-    const sorted = pts.slice().sort((a, b) => a.x === b.x ? b.y - a.y : a.x - b.x);
-    const stack = [];
-    for (const p of sorted) {
-      if (stack.length > 0 && p.x === stack[stack.length - 1].x) {
-        if (p.y > stack[stack.length - 1].y) stack[stack.length - 1] = p;
-        continue;
-      }
-      while (stack.length > 0 && p.y >= stack[stack.length - 1].y) stack.pop();
-      stack.push(p);
-    }
-    return stack;
-  }
-
   function buildPareto() {
     const rows = filterRows();
     const xKey = document.getElementById('paretoX').value;
@@ -425,11 +407,10 @@
       (groups[k] = groups[k] || []).push(r);
     });
     const datasets = Object.keys(groups).sort().map(label => {
-      const raw = groups[label]
+      const pts = groups[label]
         .filter(r => r[xKey] != null && r[yKey] != null)
         .map(r => ({x: r[xKey], y: r[yKey], _r: r}))
         .sort((a, b) => a.x - b.x);
-      const pts = paretoFrontUpperLeft(raw);
       const c = colorFor(label);
       const isExternal = pts[0]?._r.source && pts[0]._r.source !== 'SLURM';
       return {label, data: pts, borderColor: c, backgroundColor: c, pointRadius: isExternal ? 3 : 5, pointHoverRadius: 7, borderWidth: isExternal ? 1.5 : 2.5, borderDash: isExternal ? [6, 4] : [], showLine: true, tension: 0.35};
