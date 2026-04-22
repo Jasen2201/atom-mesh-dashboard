@@ -545,11 +545,12 @@
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && tooltipPinned) dismissTooltip(); });
 
   function findNearestPoint(chart, evt) {
-    const elems = chart.getElementsAtEventForMode(evt, 'nearest', {intersect: false}, true);
-    if (!elems.length) return null;
-    const dp = elems[0];
-    const raw = chart.data.datasets[dp.datasetIndex].data[dp.index];
-    return raw?._r ? {r: raw._r, elem: elems[0]} : null;
+    const elems = chart.getElementsAtEventForMode(evt, 'point', {intersect: false}, true);
+    for (const dp of elems) {
+      const raw = chart.data.datasets[dp.datasetIndex].data[dp.index];
+      if (raw?._r) return {r: raw._r, elem: dp};
+    }
+    return null;
   }
 
   function setupParetoInteraction(chart) {
@@ -638,7 +639,7 @@
       const smoothPts = d3MonotoneX(frontPts);
       datasets.push({
         label, data: smoothPts, borderColor: c, backgroundColor: 'transparent',
-        pointRadius: 0, pointHoverRadius: 0, borderWidth: 2.5,
+        pointRadius: 0, pointHoverRadius: 0, pointHitRadius: 0, borderWidth: 2.5,
         showLine: true, tension: 0,
       });
       // Layer 2: All data points as scatter (no connecting line)
