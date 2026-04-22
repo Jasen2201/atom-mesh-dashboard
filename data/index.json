@@ -1,6 +1,6 @@
 {
-  "lastUpdate": 1776837603033,
-  "source": "",
+  "lastUpdate": 1776837857040,
+  "source": "/it-share/yajizhan/slurm_logs",
   "runs": [
     {
       "run_id": "infx_mi355x_mori-sglang_fp8_1p1d_8+16gpu_disagg_isl1024_osl8192",

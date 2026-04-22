@@ -172,6 +172,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("logs_dir", nargs="?", default="/it-share/yajizhan/slurm_logs")
     ap.add_argument("-d", "--data-dir", default=str(Path(__file__).parent / "data"))
+    ap.add_argument("--prune", action="store_true",
+                    help="Also delete data/<run>.json files whose source SLURM directory "
+                         "no longer exists. Default: keep them as a permanent archive.")
     args = ap.parse_args()
 
     logs_dir = Path(args.logs_dir)
@@ -197,9 +200,11 @@ def main():
         print(f"  {run['run_id']}: {len(run['points'])} points, gsm8k={run['gsm8k']}",
               file=sys.stderr)
 
-    # Stale removal: only touch files this script "owns" — SLURM run files
-    # match the directory naming convention `<MMDD>_..._<jobid>`. Files written
-    # by other scripts (e.g. fetch_external.py → `infx_*.json`) are left alone.
+    # Default behaviour is APPEND-ONLY: data/ is a permanent archive — once a
+    # SLURM run is committed it stays even if the source dir is purged from
+    # logs_dir (SLURM logs rotate; the dashboard history must not).
+    # Use --prune to delete data files whose source dir is gone.
+    candidates = []
     for f in data_dir.glob("*.json"):
         if f.name == "index.json" or f.name in written_files:
             continue
@@ -207,8 +212,13 @@ def main():
             continue
         if not DIR_RE.match(f.stem):
             continue
-        print(f"  removing stale {f.name}", file=sys.stderr)
-        f.unlink()
+        candidates.append(f)
+    if candidates:
+        action = "removing" if args.prune else "kept (use --prune to delete)"
+        for f in candidates:
+            print(f"  {action}: {f.name}", file=sys.stderr)
+            if args.prune:
+                f.unlink()
 
     runs = rebuild_index(data_dir, source_filter=str(logs_dir))
     print(f"Wrote {len(written_files)} SLURM runs ({n_pts} points). "

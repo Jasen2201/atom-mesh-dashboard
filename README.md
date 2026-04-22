@@ -51,8 +51,11 @@ cd /it-share/yajizhan/code/atom-mesh-dashboard
 git add data/ && git commit -m "data: $(date +%F)" && git push
 ```
 
-`update_data.py` is reconciling: stale per-run files (whose source dir
-disappeared from `slurm_logs/`) are deleted from `data/` automatically.
+`data/` is **append-only** by default — a SLURM run, once captured, stays in
+the dashboard history forever, even if the source directory is later purged
+from `slurm_logs/` (SLURM logs rotate; the dashboard archive must not).
+Both scripts log "kept (use --prune to delete)" for orphaned files; run with
+`--prune` only when you actually want to drop them.
 
 `update_data.py` expects directory layout:
 
