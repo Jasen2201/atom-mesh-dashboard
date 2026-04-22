@@ -104,6 +104,7 @@
       <label>Model</label><select id="fModel"></select>
       <label>Backend</label><select id="fBackend"></select>
       <label>Config</label><select id="fConfig"></select>
+      <label>Precision</label><select id="fPrecision"></select>
       <label>ISL</label><select id="fISL"></select>
       <label>OSL</label><select id="fOSL"></select>
       <label>Date</label><select id="fDate"></select>
@@ -258,6 +259,7 @@
           source: run.source || 'SLURM',
           gsm8k: run.gsm8k,
           ...p,
+          precision: p.precision || 'fp8',
           per_user_tput: per_user,
           interactivity: p.interactivity != null ? p.interactivity : per_user,
           tput_per_gpu: p.tput_per_gpu != null ? p.tput_per_gpu : null,
@@ -274,6 +276,7 @@
     {id: 'fModel', key: 'model'},
     {id: 'fBackend', key: 'backend'},
     {id: 'fConfig', key: 'config_label'},
+    {id: 'fPrecision', key: 'precision'},
     {id: 'fISL', key: 'isl'},
     {id: 'fOSL', key: 'osl'},
     {id: 'fDate', key: 'date'},
