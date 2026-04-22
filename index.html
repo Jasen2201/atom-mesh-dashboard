@@ -563,8 +563,8 @@
       const isSlurm = (r.source || '') === 'SLURM';
       const prec = (r.precision || 'fp8').toUpperCase();
       const curveKey = isSlurm
-        ? `MI355X ${prec} sglang-atom-mesh · ISL${r.isl} OSL${r.osl}`
-        : `${(r.hardware || '').toUpperCase()} ${prec} · ISL${r.isl} OSL${r.osl} · ${r.backend}`;
+        ? `MI355X ${prec} sglang-atom-mesh · ${r.isl}/${r.osl}`
+        : `${(r.hardware || '').toUpperCase()} ${prec} ${r.backend} · ${r.isl}/${r.osl}`;
       if (!curves[curveKey]) curves[curveKey] = {};
       const cfgKey = isSlurm ? gpuConfigKey(r.config_label) : '__combined__';
       const prev = curves[curveKey][cfgKey];
