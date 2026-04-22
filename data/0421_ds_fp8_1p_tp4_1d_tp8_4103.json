@@ -23,7 +23,13 @@
       "req_tput": 1.1694,
       "completed": 160,
       "duration": 136.826,
-      "num_prompts": 160
+      "num_prompts": 160,
+      "num_prefill_gpu": 4,
+      "num_decode_gpu": 8,
+      "total_gpu": 12,
+      "interactivity": 75.8363,
+      "tput_per_gpu": 804.8288,
+      "output_tput_per_gpu": 89.1802
     },
     {
       "isl": 8192,
@@ -41,7 +47,13 @@
       "req_tput": 1.7112,
       "completed": 320,
       "duration": 187.0085,
-      "num_prompts": 320
+      "num_prompts": 320,
+      "num_prefill_gpu": 4,
+      "num_decode_gpu": 8,
+      "total_gpu": 12,
+      "interactivity": 56.0224,
+      "tput_per_gpu": 1180.0735,
+      "output_tput_per_gpu": 131.965
     },
     {
       "isl": 8192,
@@ -59,7 +71,13 @@
       "req_tput": 2.6609,
       "completed": 640,
       "duration": 240.519,
-      "num_prompts": 640
+      "num_prompts": 640,
+      "num_prefill_gpu": 4,
+      "num_decode_gpu": 8,
+      "total_gpu": 12,
+      "interactivity": 47.699,
+      "tput_per_gpu": 1842.3599,
+      "output_tput_per_gpu": 204.3937
     }
   ],
   "gsm8k": 0.98

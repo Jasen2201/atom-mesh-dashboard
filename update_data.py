@@ -26,6 +26,7 @@ from pathlib import Path
 
 DIR_RE = re.compile(r"^(\d{4})_(.+)$")
 FILE_RE = re.compile(r"^pd-mesh-(\d+)-(\d+)-(\d+)-([\d.]+)\.json$")
+GPU_RE = re.compile(r"(\d+)p_tp(\d+)_(\d+)d_tp(\d+)")
 
 # Prefix used for SLURM run files so this script knows which entries are "ours".
 # Keep in sync with parse_run_dir(): the run_id is the directory name itself.
@@ -50,6 +51,20 @@ METRIC_KEYS = [
 
 def short_model(model_id: str) -> str:
     return model_id.rstrip("/").split("/")[-1] if model_id else "unknown"
+
+
+def parse_gpu_count(config_label: str):
+    """Extract total GPU count from config like '1p_tp4_1d_tp8' → (4, 8, 12)."""
+    m = GPU_RE.search(config_label)
+    if not m:
+        return None, None, None
+    n_prefill = int(m.group(1))
+    tp_prefill = int(m.group(2))
+    n_decode = int(m.group(3))
+    tp_decode = int(m.group(4))
+    pgpu = n_prefill * tp_prefill
+    dgpu = n_decode * tp_decode
+    return pgpu, dgpu, pgpu + dgpu
 
 
 def read_gsm8k(gsm8k_dir: Path):
@@ -120,6 +135,18 @@ def parse_run_dir(run_dir: Path):
         return None
     if year is None:
         year = str(time.gmtime().tm_year)
+
+    pgpu, dgpu, total_gpu = parse_gpu_count(rest)
+    for p in points:
+        p["num_prefill_gpu"] = pgpu
+        p["num_decode_gpu"] = dgpu
+        p["total_gpu"] = total_gpu
+        tpot = p.get("tpot_ms")
+        p["interactivity"] = round(1000.0 / tpot, 4) if tpot else None
+        total_t = p.get("total_tput")
+        p["tput_per_gpu"] = round(total_t / total_gpu, 4) if (total_t and total_gpu) else None
+        out_t = p.get("output_tput")
+        p["output_tput_per_gpu"] = round(out_t / total_gpu, 4) if (out_t and total_gpu) else None
 
     iso_date = f"{year}-{mmdd[:2]}-{mmdd[2:]}"
     return {
