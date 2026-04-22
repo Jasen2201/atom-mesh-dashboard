@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Scan SLURM benchmark log directories and rebuild data.js for the dashboard.
+"""Scan SLURM benchmark log directories and refresh data/ for the dashboard.
 
 Expected layout under <logs_dir>:
     <MMDD>_<config>_<jobid>/
         bench/pd-mesh-<ISL>-<OSL>-<CONC>-<ratio>.json    (sglang benchmark_serving output)
         gsm8k/<ts>_gsm8k/.../results_*.json              (lm_eval output, optional)
 
+Output (under -d / --data-dir):
+    index.json              manifest listing every run
+    <run_id>.json           one file per run (points + gsm8k + metadata)
+
+Stale per-run files (runs no longer present in <logs_dir>) are deleted.
+
 Usage:
     ./update_data.py                                     # default /it-share/yajizhan/slurm_logs
-    ./update_data.py /path/to/slurm_logs -o data.js
+    ./update_data.py /path/to/slurm_logs -d data/
 """
 
 import argparse
@@ -126,7 +132,7 @@ def parse_run_dir(run_dir: Path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("logs_dir", nargs="?", default="/it-share/yajizhan/slurm_logs")
-    ap.add_argument("-o", "--output", default=str(Path(__file__).parent / "data.js"))
+    ap.add_argument("-d", "--data-dir", default=str(Path(__file__).parent / "data"))
     args = ap.parse_args()
 
     logs_dir = Path(args.logs_dir)
@@ -134,24 +140,54 @@ def main():
         print(f"error: {logs_dir} is not a directory", file=sys.stderr)
         sys.exit(1)
 
+    data_dir = Path(args.data_dir)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
     runs = []
+    written_files = set()
     for run_dir in sorted(logs_dir.iterdir()):
         if not run_dir.is_dir():
             continue
         run = parse_run_dir(run_dir)
-        if run:
-            print(f"  {run['run_id']}: {len(run['points'])} points, gsm8k={run['gsm8k']}",
-                  file=sys.stderr)
-            runs.append(run)
+        if not run:
+            continue
+        runs.append(run)
+        run_file = f"{run['run_id']}.json"
+        (data_dir / run_file).write_text(json.dumps(run, indent=2) + "\n")
+        written_files.add(run_file)
+        print(f"  {run['run_id']}: {len(run['points'])} points, gsm8k={run['gsm8k']}",
+              file=sys.stderr)
 
-    payload = {
+    index = {
         "lastUpdate": int(time.time() * 1000),
         "source": str(logs_dir),
-        "runs": runs,
+        "runs": [
+            {
+                "run_id": r["run_id"],
+                "date": r["date"],
+                "timestamp": r["timestamp"],
+                "model": r["model"],
+                "backend": r["backend"],
+                "config_label": r["config_label"],
+                "n_points": len(r["points"]),
+                "gsm8k": r["gsm8k"],
+                "file": f"{r['run_id']}.json",
+            }
+            for r in runs
+        ],
     }
-    out = Path(args.output)
-    out.write_text("window.BENCHMARK_DATA = " + json.dumps(payload, indent=2) + ";\n")
-    print(f"Wrote {len(runs)} runs ({sum(len(r['points']) for r in runs)} points) to {out}",
+    (data_dir / "index.json").write_text(json.dumps(index, indent=2) + "\n")
+
+    # Drop per-run JSONs whose source dir disappeared from logs_dir.
+    stale = [
+        f for f in data_dir.glob("*.json")
+        if f.name != "index.json" and f.name not in written_files
+    ]
+    for f in stale:
+        print(f"  removing stale {f.name}", file=sys.stderr)
+        f.unlink()
+
+    print(f"Wrote {len(runs)} runs ({sum(len(r['points']) for r in runs)} points) to {data_dir}/",
           file=sys.stderr)
 
 

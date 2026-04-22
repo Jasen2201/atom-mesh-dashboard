@@ -201,7 +201,6 @@
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="data.js"></script>
   <script>
   // ============================================================
   // Theme
@@ -217,25 +216,38 @@
   });
 
   // ============================================================
-  // Data flattening
+  // Data loading — fetch data/index.json then each per-run file
   // ============================================================
-  const RAW = (window.BENCHMARK_DATA || {runs: []});
+  let RAW = {runs: [], lastUpdate: null, source: ''};
   const ALL_ROWS = [];
-  RAW.runs.forEach(run => {
-    run.points.forEach(p => {
-      ALL_ROWS.push({
-        run_id: run.run_id,
-        date: run.date,
-        timestamp: run.timestamp,
-        model: run.model,
-        backend: run.backend,
-        config_label: run.config_label,
-        gsm8k: run.gsm8k,
-        ...p,
-        per_user_tput: p.output_tput && p.concurrency ? p.output_tput / p.concurrency : null,
+
+  async function loadData() {
+    const idx = await fetch('data/index.json', {cache: 'no-store'}).then(r => {
+      if (!r.ok) throw new Error(`index.json: HTTP ${r.status}`);
+      return r.json();
+    });
+    const runs = await Promise.all(
+      idx.runs.map(meta => fetch(`data/${meta.file}`, {cache: 'no-store'})
+        .then(r => r.ok ? r.json() : Promise.reject(new Error(`${meta.file}: HTTP ${r.status}`))))
+    );
+    RAW = {lastUpdate: idx.lastUpdate, source: idx.source, runs};
+    ALL_ROWS.length = 0;
+    runs.forEach(run => {
+      run.points.forEach(p => {
+        ALL_ROWS.push({
+          run_id: run.run_id,
+          date: run.date,
+          timestamp: run.timestamp,
+          model: run.model,
+          backend: run.backend,
+          config_label: run.config_label,
+          gsm8k: run.gsm8k,
+          ...p,
+          per_user_tput: p.output_tput && p.concurrency ? p.output_tput / p.concurrency : null,
+        });
       });
     });
-  });
+  }
 
   // ============================================================
   // Filters
@@ -268,9 +280,11 @@
       sel.appendChild(opt);
     });
   }
-  FILTER_DEFS.forEach(({id, key}) => {
-    fillSelect(document.getElementById(id), uniqueSorted(ALL_ROWS, key));
-  });
+  function initFilters() {
+    FILTER_DEFS.forEach(({id, key}) => {
+      fillSelect(document.getElementById(id), uniqueSorted(ALL_ROWS, key));
+    });
+  }
   function currentFilters() {
     const f = {};
     FILTER_DEFS.forEach(({id, key}) => {
@@ -581,8 +595,20 @@
     else if (active === 'trend') buildTrend();
     else if (active === 'table') buildTable();
   }
-  buildMeta();
-  rebuildAll();
+
+  document.getElementById('meta').textContent = 'Loading data/index.json …';
+  loadData().then(() => {
+    initFilters();
+    buildMeta();
+    rebuildAll();
+  }).catch(err => {
+    console.error(err);
+    document.getElementById('meta').textContent = `Failed to load data/: ${err.message}`;
+    document.getElementById('kpiRow').innerHTML =
+      '<div class="kpi-card"><div class="kpi-label">Error</div>' +
+      '<div class="kpi-value" style="font-size:14px;">data/ not reachable. ' +
+      'Open via http (not file://) and run <code>./update_data.py</code> first.</div></div>';
+  });
   </script>
 </body>
 </html>
