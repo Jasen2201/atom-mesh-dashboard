@@ -424,17 +424,33 @@
     if (paretoChart) paretoChart.destroy();
     const opts = baseChartOptions(METRIC_LABEL[xKey], METRIC_LABEL[yKey]);
     opts.plugins.tooltip.callbacks = {
-      title: ctx => ctx[0]?.dataset.label || '',
+      title: ctx => {
+        const r = ctx[0]?.raw?._r;
+        if (!r) return ctx[0]?.dataset.label || '';
+        return `${r.source === 'InferenceX' ? 'MI355X (MoRI SGLang)' : r.config_label}`;
+      },
       label: ctx => {
         const r = ctx.raw._r;
-        const lines = [
-          `conc=${r.concurrency}  x=${ctx.parsed.x.toFixed(2)}  y=${ctx.parsed.y.toFixed(2)}`,
-          `TPOT ${r.tpot_ms?.toFixed(2)} ms (p99 ${r.tpot_p99?.toFixed(2)})`,
-          `TTFT ${r.ttft_ms?.toFixed(0)} ms (p99 ${r.ttft_p99?.toFixed(0)})`,
-          `out_tput ${r.output_tput?.toFixed(1)} tok/s · per_user ${r.per_user_tput?.toFixed(1)}`,
-        ];
-        if (r.total_gpu) lines.push(`GPU: ${r.total_gpu} (${r.num_prefill_gpu}P+${r.num_decode_gpu}D) TP ${r.prefill_tp}p${r.decode_tp}d`);
-        if (r.tput_per_gpu != null) lines.push(`tput/gpu ${r.tput_per_gpu.toFixed(1)} tok/s/gpu`);
+        const f = (v, d=2) => v != null ? v.toFixed(d) : '—';
+        const lines = [];
+        if (r.point_date || r.date) lines.push(`Date: ${r.point_date || r.date}`);
+        if (r.image) lines.push(`Image: ${r.image}`);
+        lines.push(`Interactivity: ${f(r.interactivity || r.per_user_tput, 2)} tok/s/user`);
+        if (r.tput_per_gpu != null) lines.push(`Token Throughput/GPU: ${f(r.tput_per_gpu, 2)} tok/s/gpu`);
+        if (r.input_tput_per_gpu != null) lines.push(`Input Throughput/GPU: ${f(r.input_tput_per_gpu, 2)}`);
+        if (r.output_tput_per_gpu != null) lines.push(`Output Throughput/GPU: ${f(r.output_tput_per_gpu, 2)}`);
+        if (r.total_gpu) {
+          lines.push(`Total GPUs: ${r.total_gpu}`);
+          const pDpa = r.prefill_dpa != null ? `, DPA: ${r.prefill_dpa}` : '';
+          const pW = r.prefill_workers != null ? `, Workers: ${r.prefill_workers}` : '';
+          lines.push(`Prefill: ${r.num_prefill_gpu} GPUs, TP: ${r.prefill_tp}${r.prefill_ep != null ? ', EP: '+r.prefill_ep : ''}${pDpa}${pW}`);
+          const dDpa = r.decode_dpa != null ? `, DPA: ${r.decode_dpa}` : '';
+          const dW = r.decode_workers != null ? `, Workers: ${r.decode_workers}` : '';
+          lines.push(`Decode: ${r.num_decode_gpu} GPUs, TP: ${r.decode_tp}${r.decode_ep != null ? ', EP: '+r.decode_ep : ''}${dDpa}${dW}`);
+        }
+        lines.push(`Concurrency: ${r.concurrency}`);
+        lines.push(`TPOT: ${f(r.tpot_ms)} ms (p99 ${f(r.tpot_p99)})`);
+        lines.push(`TTFT: ${f(r.ttft_ms, 0)} ms (p99 ${f(r.ttft_p99, 0)})`);
         return lines;
       },
     };

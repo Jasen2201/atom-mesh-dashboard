@@ -1,5 +1,5 @@
 {
-  "lastUpdate": 1776839305834,
+  "lastUpdate": 1776839894095,
   "source": "",
   "runs": [
     {
@@ -22,7 +22,7 @@
       "backend": "mori-sglang",
       "config_label": "mori-sglang_fp8_combined",
       "source": "InferenceX",
-      "n_points": 77,
+      "n_points": 39,
       "gsm8k": null,
       "file": "infx_mi355x_mori-sglang_fp8_isl1024_osl1024.json"
     },
@@ -34,7 +34,7 @@
       "backend": "mori-sglang",
       "config_label": "mori-sglang_fp8_combined",
       "source": "InferenceX",
-      "n_points": 76,
+      "n_points": 33,
       "gsm8k": null,
       "file": "infx_mi355x_mori-sglang_fp8_isl8192_osl1024.json"
     },

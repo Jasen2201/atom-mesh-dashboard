@@ -61,9 +61,12 @@ def to_runs(rows):
 
     runs = []
     for (isl, osl), group_rows in sorted(groups.items()):
+        # Only keep rows from the latest date, matching InferenceX's display.
+        latest_date = max(r["date"] for r in group_rows)
+        latest_rows = [r for r in group_rows if r["date"] == latest_date]
+
         points = []
-        latest_date = ""
-        for r in group_rows:
+        for r in latest_rows:
             m = r.get("metrics", {})
             ptp, dtp = r["prefill_tp"], r["decode_tp"]
             pgpu, dgpu = r["num_prefill_gpu"], r["num_decode_gpu"]
@@ -73,6 +76,7 @@ def to_runs(rows):
             median_intvty = m.get("median_intvty")
             tput_per_gpu = m.get("tput_per_gpu")
             output_tput_per_gpu = m.get("output_tput_per_gpu")
+            input_tput_per_gpu = m.get("input_tput_per_gpu")
             output_tput = mean_intvty * conc if (mean_intvty is not None and conc) else None
 
             def rnd(v):
@@ -89,15 +93,22 @@ def to_runs(rows):
                 "interactivity": rnd(median_intvty),
                 "tput_per_gpu": rnd(tput_per_gpu),
                 "output_tput_per_gpu": rnd(output_tput_per_gpu),
+                "input_tput_per_gpu": rnd(input_tput_per_gpu),
                 "output_tput": rnd(output_tput),
                 "total_tput": None,
                 "req_tput": None, "completed": None, "duration": None, "num_prompts": None,
                 "prefill_tp": ptp, "decode_tp": dtp,
+                "prefill_ep": r.get("prefill_ep"),
+                "prefill_dpa": r.get("prefill_dp_attention"),
+                "prefill_workers": r.get("prefill_num_workers"),
+                "decode_ep": r.get("decode_ep"),
+                "decode_dpa": r.get("decode_dp_attention"),
+                "decode_workers": r.get("decode_num_workers"),
                 "num_prefill_gpu": pgpu, "num_decode_gpu": dgpu,
                 "total_gpu": total_gpu,
+                "image": r.get("image"),
+                "point_date": r["date"],
             })
-            if r["date"] > latest_date:
-                latest_date = r["date"]
 
         run_id = f"{RUN_PREFIX}{HARDWARE}_{FRAMEWORK}_{PRECISION}_isl{isl}_osl{osl}"
         try:
