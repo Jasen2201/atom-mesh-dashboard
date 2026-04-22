@@ -292,6 +292,12 @@
     FILTER_DEFS.forEach(({id, key}) => {
       fillSelect(document.getElementById(id), uniqueSorted(ALL_ROWS, key));
     });
+    // Default Date to latest SLURM date
+    const slurmDates = ALL_ROWS.filter(r => r.source === 'SLURM').map(r => r.date).filter(Boolean);
+    if (slurmDates.length) {
+      const latest = slurmDates.sort().pop();
+      document.getElementById('fDate').value = latest;
+    }
   }
   function currentFilters() {
     const f = {};
@@ -304,6 +310,13 @@
   function filterRows() {
     const f = currentFilters();
     return ALL_ROWS.filter(r => {
+      // InferenceX data always shown regardless of date filter
+      if (r.source === 'InferenceX' && f.date) {
+        const fNoDate = {...f};
+        delete fNoDate.date;
+        for (const k in fNoDate) if (String(r[k]) !== fNoDate[k]) return false;
+        return true;
+      }
       for (const k in f) if (String(r[k]) !== f[k]) return false;
       return true;
     });
