@@ -1,19 +1,7 @@
 {
-  "lastUpdate": 1776840187179,
+  "lastUpdate": 1776840216475,
   "source": "",
   "runs": [
-    {
-      "run_id": "infx_mi355x_mori-sglang_fp8_isl1024_osl8192",
-      "date": "2026-02-06",
-      "timestamp": 1770336000000,
-      "model": "DeepSeek-R1-0528",
-      "backend": "mori-sglang",
-      "config_label": "mori-sglang_fp8_combined",
-      "source": "InferenceX",
-      "n_points": 14,
-      "gsm8k": null,
-      "file": "infx_mi355x_mori-sglang_fp8_isl1024_osl8192.json"
-    },
     {
       "run_id": "infx_mi355x_mori-sglang_fp8_isl8192_osl1024",
       "date": "2026-03-03",
