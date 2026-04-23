@@ -752,9 +752,15 @@
     const rows = filterRows().slice();
     rows.sort((a, b) => {
       const av = a[tableSortKey], bv = b[tableSortKey];
-      if (av == null) return 1; if (bv == null) return -1;
-      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * tableSortDir;
-      return String(av).localeCompare(String(bv)) * tableSortDir;
+      if (av == null && bv != null) return 1;
+      if (bv == null && av != null) return -1;
+      let cmp = 0;
+      if (typeof av === 'number' && typeof bv === 'number') cmp = av - bv;
+      else cmp = String(av ?? '').localeCompare(String(bv ?? ''));
+      if (cmp !== 0) return cmp * tableSortDir;
+      const ca = a.config_label || '', cb = b.config_label || '';
+      if (ca !== cb) return ca.localeCompare(cb);
+      return (a.concurrency || 0) - (b.concurrency || 0);
     });
     const tbody = document.querySelector('#dataTable tbody');
     tbody.innerHTML = '';
