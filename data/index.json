@@ -1,5 +1,5 @@
 {
-  "lastUpdate": 1776862623975,
+  "lastUpdate": 1776910483795,
   "source": "/it-share/yajizhan/slurm_logs",
   "runs": [
     {
@@ -73,6 +73,20 @@
       "file": "0421_ds_fp8_1p_tp4_1d_tp8_4103.json"
     },
     {
+      "run_id": "0422_ds_fp4_1p_tp4_2d_tp8_4165",
+      "date": "2026-04-22",
+      "timestamp": 1776864084000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "sglang",
+      "config_label": "ds_fp4_1p_tp4_2d_tp8_4165",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 3,
+      "gsm8k": 0.9347990902198635,
+      "file": "0422_ds_fp4_1p_tp4_2d_tp8_4165.json"
+    },
+    {
       "run_id": "0422_ds_fp4_1p_tp8_1d_tp8_4164",
       "date": "2026-04-22",
       "timestamp": 1776862138000,
@@ -85,6 +99,20 @@
       "n_points": 5,
       "gsm8k": 0.9325246398786959,
       "file": "0422_ds_fp4_1p_tp8_1d_tp8_4164.json"
+    },
+    {
+      "run_id": "0422_ds_fp4_1p_tp8_2d_tp8_4166",
+      "date": "2026-04-22",
+      "timestamp": 1776866819000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "sglang",
+      "config_label": "ds_fp4_1p_tp8_2d_tp8_4166",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 8,
+      "gsm8k": 0.9431387414708112,
+      "file": "0422_ds_fp4_1p_tp8_2d_tp8_4166.json"
     },
     {
       "run_id": "0422_ds_fp8_1p_tp4_1d_tp8_4143",

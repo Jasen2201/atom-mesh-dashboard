@@ -38,9 +38,16 @@ SOURCES = [
 
 def fetch():
     print(f"GET {API}", file=sys.stderr)
-    req = urllib.request.Request(API, headers={"User-Agent": "atom-mesh-dashboard/1.0"})
+    req = urllib.request.Request(API, headers={
+        "User-Agent": "atom-mesh-dashboard/1.0",
+        "Accept-Encoding": "gzip, deflate",
+    })
     with urllib.request.urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read())
+        raw = resp.read()
+        if resp.headers.get("Content-Encoding") == "gzip":
+            import gzip
+            raw = gzip.decompress(raw)
+        return json.loads(raw)
 
 
 def ms(x):
