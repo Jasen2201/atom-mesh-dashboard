@@ -1,6 +1,6 @@
 {
-  "lastUpdate": 1776910483795,
-  "source": "/it-share/yajizhan/slurm_logs",
+  "lastUpdate": 1777342835862,
+  "source": "",
   "runs": [
     {
       "run_id": "infx_b200_dynamo-trt_fp4_isl8192_osl1024",
