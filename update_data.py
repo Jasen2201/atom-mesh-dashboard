@@ -26,6 +26,7 @@ from pathlib import Path
 
 DIR_RE = re.compile(r"^(\d{4})_(.+)$")
 FILE_RE = re.compile(r"^pd-mesh-(\d+)-(\d+)-(\d+)-([\d.]+)\.json$")
+VLLM_FILE_RE = re.compile(r"^pd-vllm-mesh-(\d+)-(\d+)-(\d+)-([\d.]+)\.json$")
 GPU_RE = re.compile(r"(\d+)p_tp(\d+)_(\d+)d_tp(\d+)")
 PRECISION_RE = re.compile(r"_(fp\d+)_")
 
@@ -95,14 +96,17 @@ def parse_run_dir(run_dir: Path):
     if not bench_dir.is_dir():
         return None
 
+    is_vllm = "_vllm_" in rest
     points = []
     year = None
     timestamp = None
     backend = None
     model = None
 
-    for f in sorted(bench_dir.glob("pd-mesh-*.json")):
-        fm = FILE_RE.match(f.name)
+    glob_pattern = "pd-vllm-mesh-*.json" if is_vllm else "pd-mesh-*.json"
+    file_re = VLLM_FILE_RE if is_vllm else FILE_RE
+    for f in sorted(bench_dir.glob(glob_pattern)):
+        fm = file_re.match(f.name)
         if not fm:
             continue
         isl, osl, conc = int(fm.group(1)), int(fm.group(2)), int(fm.group(3))
@@ -154,6 +158,9 @@ def parse_run_dir(run_dir: Path):
         p["tput_per_gpu"] = round(total_t / total_gpu, 4) if (total_t and total_gpu) else None
         out_t = p.get("output_tput")
         p["output_tput_per_gpu"] = round(out_t / total_gpu, 4) if (out_t and total_gpu) else None
+
+    if is_vllm:
+        backend = "vllm"
 
     iso_date = f"{year}-{mmdd[:2]}-{mmdd[2:]}"
     return {

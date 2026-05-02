@@ -1,6 +1,6 @@
 {
-  "lastUpdate": 1777342835862,
-  "source": "",
+  "lastUpdate": 1777723844654,
+  "source": "/it-share/yajizhan/slurm_logs",
   "runs": [
     {
       "run_id": "infx_b200_dynamo-trt_fp4_isl8192_osl1024",
@@ -155,6 +155,118 @@
       "n_points": 8,
       "gsm8k": 0.9499620924943138,
       "file": "0422_ds_fp8_1p_tp8_1d_tp8_4158.json"
+    },
+    {
+      "run_id": "0429_ds_fp4_1p_tp8_1d_tp8_5287",
+      "date": "2026-04-29",
+      "timestamp": 1777445698000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "sglang",
+      "config_label": "ds_fp4_1p_tp8_1d_tp8_5287",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 5,
+      "gsm8k": 0.4162244124336619,
+      "file": "0429_ds_fp4_1p_tp8_1d_tp8_5287.json"
+    },
+    {
+      "run_id": "0429_ds_fp4_vllm_1p_tp8_1d_tp8_5282",
+      "date": "2026-04-29",
+      "timestamp": 1777442269000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "vllm",
+      "config_label": "ds_fp4_vllm_1p_tp8_1d_tp8_5282",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 4,
+      "gsm8k": 0.9431387414708112,
+      "file": "0429_ds_fp4_vllm_1p_tp8_1d_tp8_5282.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_1p_tp4_2d_tp8_5405",
+      "date": "2026-05-02",
+      "timestamp": 1777691257000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "sglang",
+      "config_label": "ds_fp4_1p_tp4_2d_tp8_5405",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 3,
+      "gsm8k": 0.4245640636846095,
+      "file": "0502_ds_fp4_1p_tp4_2d_tp8_5405.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_1p_tp8_1d_tp8_5407",
+      "date": "2026-05-02",
+      "timestamp": 1777693835000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "sglang",
+      "config_label": "ds_fp4_1p_tp8_1d_tp8_5407",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 5,
+      "gsm8k": 0.4184988627748294,
+      "file": "0502_ds_fp4_1p_tp8_1d_tp8_5407.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_1p_tp8_2d_tp8_5409",
+      "date": "2026-05-02",
+      "timestamp": 1777697334000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "sglang",
+      "config_label": "ds_fp4_1p_tp8_2d_tp8_5409",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 8,
+      "gsm8k": 0.41698256254738436,
+      "file": "0502_ds_fp4_1p_tp8_2d_tp8_5409.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_vllm_1p_tp4_2d_tp8_5406",
+      "date": "2026-05-02",
+      "timestamp": 1777692610000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "vllm",
+      "config_label": "ds_fp4_vllm_1p_tp4_2d_tp8_5406",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 5,
+      "gsm8k": 0.9385898407884761,
+      "file": "0502_ds_fp4_vllm_1p_tp4_2d_tp8_5406.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_vllm_1p_tp8_1d_tp8_5408",
+      "date": "2026-05-02",
+      "timestamp": 1777695188000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "vllm",
+      "config_label": "ds_fp4_vllm_1p_tp8_1d_tp8_5408",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 5,
+      "gsm8k": 0.934040940106141,
+      "file": "0502_ds_fp4_vllm_1p_tp8_1d_tp8_5408.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_vllm_1p_tp8_2d_tp8_5410",
+      "date": "2026-05-02",
+      "timestamp": 1777698597000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "vllm",
+      "config_label": "ds_fp4_vllm_1p_tp8_2d_tp8_5410",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 5,
+      "gsm8k": 0.9370735405610311,
+      "file": "0502_ds_fp4_vllm_1p_tp8_2d_tp8_5410.json"
     }
   ]
 }

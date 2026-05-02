@@ -362,9 +362,10 @@
   // Color: B200 = NV green, MI355X (MoRI) = red, SLURM (ours) = pink
   // ============================================================
   const SOURCE_COLORS = {
-    'b200':   {base: '#76b900', variants: ['#76b900', '#5a8f00']},   // NV green
-    'mi355x': {base: '#e04040', variants: ['#e04040', '#c03030']},   // red
-    'slurm':  {base: '#d86ecc', variants: ['#d86ecc', '#b84eac']},   // pink (brand)
+    'b200':       {base: '#76b900', variants: ['#76b900', '#5a8f00']},   // NV green
+    'mi355x':     {base: '#e04040', variants: ['#e04040', '#c03030']},   // red
+    'slurm':      {base: '#d86ecc', variants: ['#d86ecc', '#b84eac']},   // pink (brand)
+    'slurm-vllm': {base: '#6db2f0', variants: ['#6db2f0', '#4a90d9']},   // blue
   };
   function colorFor(label, rows) {
     if (!rows || !rows.length) {
@@ -376,7 +377,8 @@
     const hw = (r0.hardware || '').toLowerCase();
     const src = (r0.source || '').toLowerCase();
     const prec = (r0.precision || 'fp8').toLowerCase();
-    let key = src === 'slurm' ? 'slurm' : hw;
+    const backend = (r0.backend || '').toLowerCase();
+    let key = src === 'slurm' ? (backend === 'vllm' ? 'slurm-vllm' : 'slurm') : hw;
     const entry = SOURCE_COLORS[key];
     if (!entry) {
       let h = 0;
@@ -600,8 +602,9 @@
     rows.forEach(r => {
       const isSlurm = (r.source || '') === 'SLURM';
       const prec = (r.precision || 'fp8').toUpperCase();
+      const slurmBackend = (r.backend || 'sglang') === 'vllm' ? 'vllm-atom-mesh' : 'sglang-atom-mesh';
       const curveKey = isSlurm
-        ? `MI355X ${prec} sglang-atom-mesh · ${r.isl}/${r.osl}`
+        ? `MI355X ${prec} ${slurmBackend} · ${r.isl}/${r.osl}`
         : `${(r.hardware || '').toUpperCase()} ${prec} ${r.backend} · ${r.isl}/${r.osl}`;
       if (!curves[curveKey]) curves[curveKey] = {};
       const cfgKey = isSlurm ? gpuConfigKey(r.config_label) : '__combined__';
