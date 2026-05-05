@@ -1,5 +1,5 @@
 {
-  "lastUpdate": 1777723844654,
+  "lastUpdate": 1777970040783,
   "source": "/it-share/yajizhan/slurm_logs",
   "runs": [
     {
@@ -185,88 +185,74 @@
       "file": "0429_ds_fp4_vllm_1p_tp8_1d_tp8_5282.json"
     },
     {
-      "run_id": "0502_ds_fp4_1p_tp4_2d_tp8_5405",
+      "run_id": "0502_ds_fp4_1p_tp4_2d_tp8_5456",
       "date": "2026-05-02",
-      "timestamp": 1777691257000,
+      "timestamp": 1777729765000,
       "model": "DeepSeek-R1-0528-MXFP4",
       "backend": "sglang",
-      "config_label": "ds_fp4_1p_tp4_2d_tp8_5405",
+      "config_label": "ds_fp4_1p_tp4_2d_tp8_5456",
       "source": "SLURM",
       "precision": "fp4",
       "hardware": null,
       "n_points": 3,
-      "gsm8k": 0.4245640636846095,
-      "file": "0502_ds_fp4_1p_tp4_2d_tp8_5405.json"
+      "gsm8k": 0.9416224412433661,
+      "file": "0502_ds_fp4_1p_tp4_2d_tp8_5456.json"
     },
     {
-      "run_id": "0502_ds_fp4_1p_tp8_1d_tp8_5407",
+      "run_id": "0502_ds_fp4_1p_tp8_2d_tp8_5460",
       "date": "2026-05-02",
-      "timestamp": 1777693835000,
+      "timestamp": 1777737306000,
       "model": "DeepSeek-R1-0528-MXFP4",
       "backend": "sglang",
-      "config_label": "ds_fp4_1p_tp8_1d_tp8_5407",
-      "source": "SLURM",
-      "precision": "fp4",
-      "hardware": null,
-      "n_points": 5,
-      "gsm8k": 0.4184988627748294,
-      "file": "0502_ds_fp4_1p_tp8_1d_tp8_5407.json"
-    },
-    {
-      "run_id": "0502_ds_fp4_1p_tp8_2d_tp8_5409",
-      "date": "2026-05-02",
-      "timestamp": 1777697334000,
-      "model": "DeepSeek-R1-0528-MXFP4",
-      "backend": "sglang",
-      "config_label": "ds_fp4_1p_tp8_2d_tp8_5409",
+      "config_label": "ds_fp4_1p_tp8_2d_tp8_5460",
       "source": "SLURM",
       "precision": "fp4",
       "hardware": null,
       "n_points": 8,
-      "gsm8k": 0.41698256254738436,
-      "file": "0502_ds_fp4_1p_tp8_2d_tp8_5409.json"
+      "gsm8k": 0.934040940106141,
+      "file": "0502_ds_fp4_1p_tp8_2d_tp8_5460.json"
     },
     {
-      "run_id": "0502_ds_fp4_vllm_1p_tp4_2d_tp8_5406",
+      "run_id": "0502_ds_fp4_vllm_1p_tp4_2d_tp8_5457",
       "date": "2026-05-02",
-      "timestamp": 1777692610000,
+      "timestamp": 1777731678000,
       "model": "DeepSeek-R1-0528-MXFP4",
       "backend": "vllm",
-      "config_label": "ds_fp4_vllm_1p_tp4_2d_tp8_5406",
+      "config_label": "ds_fp4_vllm_1p_tp4_2d_tp8_5457",
+      "source": "SLURM",
+      "precision": "fp4",
+      "hardware": null,
+      "n_points": 1,
+      "gsm8k": 0.9378316906747536,
+      "file": "0502_ds_fp4_vllm_1p_tp4_2d_tp8_5457.json"
+    },
+    {
+      "run_id": "0502_ds_fp4_vllm_1p_tp8_1d_tp8_5459",
+      "date": "2026-05-02",
+      "timestamp": 1777734981000,
+      "model": "DeepSeek-R1-0528-MXFP4",
+      "backend": "vllm",
+      "config_label": "ds_fp4_vllm_1p_tp8_1d_tp8_5459",
       "source": "SLURM",
       "precision": "fp4",
       "hardware": null,
       "n_points": 5,
       "gsm8k": 0.9385898407884761,
-      "file": "0502_ds_fp4_vllm_1p_tp4_2d_tp8_5406.json"
+      "file": "0502_ds_fp4_vllm_1p_tp8_1d_tp8_5459.json"
     },
     {
-      "run_id": "0502_ds_fp4_vllm_1p_tp8_1d_tp8_5408",
+      "run_id": "0502_ds_fp4_vllm_1p_tp8_2d_tp8_5461",
       "date": "2026-05-02",
-      "timestamp": 1777695188000,
+      "timestamp": 1777743675000,
       "model": "DeepSeek-R1-0528-MXFP4",
       "backend": "vllm",
-      "config_label": "ds_fp4_vllm_1p_tp8_1d_tp8_5408",
+      "config_label": "ds_fp4_vllm_1p_tp8_2d_tp8_5461",
       "source": "SLURM",
       "precision": "fp4",
       "hardware": null,
-      "n_points": 5,
-      "gsm8k": 0.934040940106141,
-      "file": "0502_ds_fp4_vllm_1p_tp8_1d_tp8_5408.json"
-    },
-    {
-      "run_id": "0502_ds_fp4_vllm_1p_tp8_2d_tp8_5410",
-      "date": "2026-05-02",
-      "timestamp": 1777698597000,
-      "model": "DeepSeek-R1-0528-MXFP4",
-      "backend": "vllm",
-      "config_label": "ds_fp4_vllm_1p_tp8_2d_tp8_5410",
-      "source": "SLURM",
-      "precision": "fp4",
-      "hardware": null,
-      "n_points": 5,
-      "gsm8k": 0.9370735405610311,
-      "file": "0502_ds_fp4_vllm_1p_tp8_2d_tp8_5410.json"
+      "n_points": 8,
+      "gsm8k": 0.9347990902198635,
+      "file": "0502_ds_fp4_vllm_1p_tp8_2d_tp8_5461.json"
     }
   ]
 }
